@@ -327,9 +327,53 @@ bb pr review        Approve or request changes
 bb pr watch         Watch for PR activity and status changes
 
 bb api <endpoint>   Make an authenticated API request
+
+bb skill install    Install bb skill file for coding agents in this repo
 ```
 
 Run `bb <command> --help` for detailed usage of any command.
+
+## Coding agent skill files
+
+`bb` can auto-generate skill/instruction files so that coding agents in your
+repo know how to use the CLI. It detects which agents are configured by looking
+for their marker directories and places the skill file in the right location.
+
+### Supported agents
+
+| Agent | Detection | Skill path |
+|-------|-----------|------------|
+| Claude Code | `.claude/` | `.claude/skills/bb/SKILL.md` |
+| GitHub Copilot | `.github/` | `.github/instructions/bb.instructions.md` |
+| Cursor | `.cursor/` or `.cursorrules` | `.cursor/rules/bb.md` |
+| Windsurf | `.windsurfrules` or `.codeium/` | `.windsurf/rules/bb.md` |
+| OpenAI Codex | `.codex/` or `AGENTS.md` | `.codex/skills/bb.md` |
+| Amazon Q | `.amazonq/` | `.amazonq/rules/bb.md` |
+| Augment Code | `.augment/` or `.augment-guidelines` | `.augment/rules/bb.md` |
+| Roo Code / Cline | `.roo/` or `.clinerules` | `.roo/rules/bb.md` |
+
+### Usage
+
+```sh
+# Auto-detect agents and install skill files
+bb skill install
+
+# See what agents are detected
+bb skill install --list
+
+# Install for a specific agent
+bb skill install --agent claude
+bb skill install --agent copilot
+
+# Install for all detected agents
+bb skill install --agent all
+
+# Preview without writing files
+bb skill install --dry-run
+
+# Overwrite existing skill files
+bb skill install --force
+```
 
 ## Differences from `gh`
 

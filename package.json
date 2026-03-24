@@ -1,0 +1,24 @@
+{
+  "name": "bb-cli",
+  "version": "0.1.0",
+  "description": "A CLI for Bitbucket Server, modeled after the GitHub gh CLI",
+  "type": "module",
+  "bin": {
+    "bb": "./bin/bb.ts"
+  },
+  "scripts": {
+    "dev": "bun run bin/bb.ts",
+    "build": "bun build bin/bb.ts --outdir dist --target bun",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "commander": "^13.1.0",
+    "chalk": "^5.4.1",
+    "open": "^10.1.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.0",
+    "@types/bun": "latest"
+  }
+}

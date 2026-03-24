@@ -31,30 +31,135 @@ If you know `gh`, you already know `bb`.
 
 - [Bun](https://bun.sh) v1.0 or later
 
-### From source
+Install Bun if you don't have it:
 
 ```sh
-git clone <this-repo> && cd bb
+curl -fsSL https://bun.sh/install | bash
+```
+
+### Quick start (from source)
+
+```sh
+git clone https://github.com/nwp/bb.git
+cd bb
 bun install
 ```
 
-Run directly:
+Run directly without building:
 
 ```sh
 bun run bin/bb.ts --help
 ```
 
-Or link globally:
-
-```sh
-bun link
-```
-
 ### Build a standalone binary
+
+Bun can compile the entire CLI into a single self-contained executable with no
+runtime dependencies — no need to have Bun or Node.js installed on the target
+machine:
 
 ```sh
 bun build bin/bb.ts --compile --outfile bb
-sudo mv bb /usr/local/bin/
+```
+
+This produces a single `bb` binary in the current directory. Test it:
+
+```sh
+./bb --help
+```
+
+### Install on macOS
+
+Build the binary and move it into your PATH:
+
+```sh
+# Build
+bun build bin/bb.ts --compile --outfile bb
+
+# Install to a directory in your PATH
+sudo mv bb /usr/local/bin/bb
+
+# Verify
+bb --version
+```
+
+If you prefer not to use `sudo`, install to a user-local bin directory instead:
+
+```sh
+mkdir -p ~/.local/bin
+mv bb ~/.local/bin/bb
+```
+
+Make sure `~/.local/bin` is in your PATH. Add this to your `~/.zshrc` (or
+`~/.bashrc`) if it isn't:
+
+```sh
+export PATH="$HOME/.local/bin:$PATH"
+```
+
+Then reload your shell:
+
+```sh
+source ~/.zshrc
+```
+
+### Install on Linux
+
+Same as macOS:
+
+```sh
+bun build bin/bb.ts --compile --outfile bb
+sudo mv bb /usr/local/bin/bb
+```
+
+### Making `bb` available to coding agents
+
+Coding agents (Claude Code, Copilot, Cursor, etc.) need `bb` to be in the
+system PATH. After installing the binary to `/usr/local/bin` or `~/.local/bin`
+as shown above, any agent running in a terminal session will be able to invoke
+`bb` directly.
+
+For agents running in CI or Docker containers, add the build step to your
+image:
+
+```dockerfile
+# In your Dockerfile
+COPY --from=oven/bun:latest /usr/local/bin/bun /usr/local/bin/bun
+COPY . /opt/bb
+RUN cd /opt/bb && bun install && bun build bin/bb.ts --compile --outfile /usr/local/bin/bb
+```
+
+For agents that need to authenticate non-interactively, set the token via flags:
+
+```sh
+bb auth login --hostname bitbucket.example.com --token "$BB_TOKEN"
+```
+
+Or pre-populate the config file directly:
+
+```sh
+mkdir -p ~/.config/bb
+cat > ~/.config/bb/config.json << 'EOF'
+{
+  "hosts": {
+    "bitbucket.example.com": {
+      "token": "YOUR_TOKEN_HERE",
+      "protocol": "https"
+    }
+  }
+}
+EOF
+```
+
+### Updating
+
+Pull the latest source and rebuild:
+
+```sh
+cd bb
+git pull
+bun install
+bun build bin/bb.ts --compile --outfile bb
+sudo mv bb /usr/local/bin/bb
 ```
 
 ## Authentication

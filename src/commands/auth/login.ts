@@ -48,14 +48,22 @@ export const loginCmd = new Command("login")
       process.exit(1);
     }
 
-    await setHostConfig(hostname, hostConfig);
+    const store = await setHostConfig(hostname, hostConfig);
     console.log(chalk.green(`✓ Logged in to ${hostname}`));
-    console.log(`  Config saved to ${chalk.dim("~/.config/bb/config.json")}`);
+
+    if (store === "keychain") {
+      console.log(`  Token stored in ${chalk.cyan("system keychain")}`);
+    } else {
+      console.log(`  Token stored in ${chalk.dim("~/.config/bb/config.json")} ${chalk.yellow("(plaintext fallback)")}`);
+      console.log(chalk.yellow("  ⚠ Install a keychain for secure storage:"));
+      if (process.platform === "linux") {
+        console.log(chalk.yellow("    sudo apt install libsecret-tools  # or equivalent"));
+      }
+    }
   });
 
 function readLine(): Promise<string> {
   return new Promise((resolve) => {
-    const chunks: string[] = [];
     process.stdin.setEncoding("utf-8");
     process.stdin.once("data", (data) => {
       resolve(String(data));

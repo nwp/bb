@@ -1,7 +1,8 @@
 import { Command } from "commander";
 import chalk from "chalk";
-import { loadConfig } from "../../lib/config.js";
+import { loadConfig, getKeychainName } from "../../lib/config.js";
 import { BitbucketAPI } from "../../lib/api.js";
+import { getToken } from "../../lib/keychain.js";
 
 export const statusCmd = new Command("status")
   .description("Show authentication status")
@@ -15,20 +16,45 @@ export const statusCmd = new Command("status")
       return;
     }
 
-    for (const [hostname, hostConfig] of hosts) {
-      const proto = hostConfig.protocol ?? "https";
-      process.stdout.write(`${chalk.bold(hostname)}\n`);
-      process.stdout.write(`  Protocol: ${proto}\n`);
-      process.stdout.write(`  Token: ${maskToken(hostConfig.token)}\n`);
+    const keychainName = await getKeychainName();
+    if (keychainName) {
+      console.log(`Keychain: ${chalk.green(keychainName)}\n`);
+    } else {
+      console.log(`Keychain: ${chalk.yellow("none (tokens stored in plaintext)")}\n`);
+    }
+
+    for (const [hostname, entry] of hosts) {
+      const proto = entry.protocol ?? "https";
+      console.log(chalk.bold(hostname));
+      console.log(`  Protocol: ${proto}`);
+
+      // Resolve the token
+      let token: string | null = null;
+      if (entry.token_store === "keychain") {
+        token = await getToken(hostname);
+        console.log(`  Token:    ${chalk.green("stored in keychain")}`);
+      } else if (entry.token) {
+        token = entry.token;
+        console.log(`  Token:    ${maskToken(token)} ${chalk.yellow("(plaintext in config file)")}`);
+      } else {
+        console.log(`  Token:    ${chalk.red("missing")}`);
+      }
 
       // Test connectivity
-      const api = new BitbucketAPI({ hostname, hostConfig });
-      try {
-        await api.get("/rest/api/1.0/application-properties");
-        process.stdout.write(`  Status: ${chalk.green("✓ Connected")}\n`);
-      } catch {
-        process.stdout.write(`  Status: ${chalk.red("✗ Connection failed")}\n`);
+      if (token) {
+        const api = new BitbucketAPI({
+          hostname,
+          hostConfig: { token, protocol: entry.protocol },
+        });
+        try {
+          await api.get("/rest/api/1.0/application-properties");
+          console.log(`  Status:   ${chalk.green("✓ Connected")}`);
+        } catch {
+          console.log(`  Status:   ${chalk.red("✗ Connection failed")}`);
+        }
       }
+
+      console.log();
     }
   });
 

@@ -204,7 +204,22 @@ bb auth status
 bb auth logout
 ```
 
-Credentials are stored in `~/.config/bb/config.json`. Multiple hosts are supported.
+### Secure token storage
+
+Tokens are stored in the **system keychain** when available:
+
+- **macOS**: Keychain Access (via `security`)
+- **Linux**: GNOME Keyring / KWallet (via `secret-tool` from `libsecret-tools`)
+
+If no keychain is available, tokens fall back to `~/.config/bb/config.json`
+(mode `0600`) with a warning. To migrate existing plaintext tokens after
+installing a keychain:
+
+```sh
+bb auth migrate
+```
+
+Multiple hosts are supported.
 
 ## Usage
 
@@ -310,6 +325,7 @@ Config is stored at `~/.config/bb/config.json`:
 bb auth login       Authenticate with a Bitbucket Server instance
 bb auth logout      Remove authentication
 bb auth status      Show authentication status
+bb auth migrate     Migrate plaintext tokens to the system keychain
 
 bb repo list        List repositories
 bb repo view        View repository details

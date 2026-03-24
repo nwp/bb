@@ -31,9 +31,9 @@ describe("parseRemoteUrl", () => {
 
   // ── SSH ────────────────────────────────────────────────────────
 
-  test("SSH with port", () => {
+  test("SSH with port preserves host:port", () => {
     const result = parseRemoteUrl("ssh://git@bitbucket.example.com:7999/PROJ/my-repo.git");
-    expect(result).toEqual({ hostname: "bitbucket.example.com", project: "PROJ", repo: "my-repo" });
+    expect(result).toEqual({ hostname: "bitbucket.example.com:7999", project: "PROJ", repo: "my-repo" });
   });
 
   test("SSH without port", () => {
@@ -41,16 +41,16 @@ describe("parseRemoteUrl", () => {
     expect(result).toEqual({ hostname: "bitbucket.example.com", project: "PROJ", repo: "my-repo" });
   });
 
-  test("SSH without .git suffix", () => {
+  test("SSH without .git suffix preserves host:port", () => {
     const result = parseRemoteUrl("ssh://git@bitbucket.example.com:7999/PROJ/my-repo");
-    expect(result).toEqual({ hostname: "bitbucket.example.com", project: "PROJ", repo: "my-repo" });
+    expect(result).toEqual({ hostname: "bitbucket.example.com:7999", project: "PROJ", repo: "my-repo" });
   });
 
   // ── SCP-style ──────────────────────────────────────────────────
 
-  test("SCP-style with port", () => {
+  test("SCP-style with port preserves host:port", () => {
     const result = parseRemoteUrl("git@bitbucket.example.com:7999/PROJ/my-repo.git");
-    expect(result).toEqual({ hostname: "bitbucket.example.com", project: "PROJ", repo: "my-repo" });
+    expect(result).toEqual({ hostname: "bitbucket.example.com:7999", project: "PROJ", repo: "my-repo" });
   });
 
   test("SCP-style without port", () => {
@@ -80,6 +80,6 @@ describe("parseRemoteUrl", () => {
 
   test("handles repo names with underscores", () => {
     const result = parseRemoteUrl("ssh://git@bb.corp.com:7999/PROJ/my_repo.git");
-    expect(result).toEqual({ hostname: "bb.corp.com", project: "PROJ", repo: "my_repo" });
+    expect(result).toEqual({ hostname: "bb.corp.com:7999", project: "PROJ", repo: "my_repo" });
   });
 });

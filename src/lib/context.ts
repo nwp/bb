@@ -26,13 +26,23 @@ export function parseRemoteUrl(url: string): { hostname: string; project: string
   }
 
   // SSH: ssh://git@host:port/PROJECT/repo.git or ssh://git@host/PROJECT/repo.git
-  const sshMatch = url.match(/ssh:\/\/[^@]+@([^:/]+)(?::\d+)?\/([^/]+)\/([^/]+?)(?:\.git)?$/);
+  // Preserves host:port so auth config lookups match (e.g. bitbucket.example.com:7990)
+  const sshMatch = url.match(/ssh:\/\/[^@]+@([^:/]+)(?::(\d+))?\/([^/]+)\/([^/]+?)(?:\.git)?$/);
   if (sshMatch) {
-    return { hostname: sshMatch[1], project: sshMatch[2], repo: sshMatch[3] };
+    const host = sshMatch[2] ? `${sshMatch[1]}:${sshMatch[2]}` : sshMatch[1];
+    return { hostname: host, project: sshMatch[3], repo: sshMatch[4] };
   }
 
   // SCP-style: git@host:port/PROJECT/repo.git or git@host:PROJECT/repo.git
-  const scpMatch = url.match(/[^@]+@([^:]+):(?:\d+\/)?([^/]+)\/([^/]+?)(?:\.git)?$/);
+  const scpWithPortMatch = url.match(/[^@]+@([^:]+):(\d+)\/([^/]+)\/([^/]+?)(?:\.git)?$/);
+  if (scpWithPortMatch) {
+    return {
+      hostname: `${scpWithPortMatch[1]}:${scpWithPortMatch[2]}`,
+      project: scpWithPortMatch[3],
+      repo: scpWithPortMatch[4],
+    };
+  }
+  const scpMatch = url.match(/[^@]+@([^:]+):([^/]+)\/([^/]+?)(?:\.git)?$/);
   if (scpMatch) {
     return { hostname: scpMatch[1], project: scpMatch[2], repo: scpMatch[3] };
   }

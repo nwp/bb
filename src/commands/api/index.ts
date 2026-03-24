@@ -1,6 +1,6 @@
 import { Command } from "commander";
 import chalk from "chalk";
-import { getDefaultHost } from "../../lib/config.js";
+import { getDefaultHost, getHostConfig } from "../../lib/config.js";
 import { BitbucketAPI } from "../../lib/api.js";
 
 export const apiCmd = new Command("api")
@@ -12,13 +12,28 @@ export const apiCmd = new Command("api")
   .option("--jq <expression>", "Filter JSON output (simple dot notation)")
   .option("-i, --include", "Include HTTP response headers")
   .action(async (endpoint: string, opts) => {
-    const host = await getDefaultHost();
-    if (!host) {
-      console.error(chalk.red("Not authenticated. Run: bb auth login"));
-      process.exit(1);
+    let hostname: string;
+    let hostConfig;
+
+    if (opts.hostname) {
+      // Use credentials for the specified hostname
+      hostConfig = await getHostConfig(opts.hostname);
+      if (!hostConfig) {
+        console.error(chalk.red(`Not authenticated to ${opts.hostname}. Run: bb auth login`));
+        process.exit(1);
+      }
+      hostname = opts.hostname;
+    } else {
+      const host = await getDefaultHost();
+      if (!host) {
+        console.error(chalk.red("Not authenticated. Run: bb auth login"));
+        process.exit(1);
+      }
+      hostname = host.hostname;
+      hostConfig = host.config;
     }
 
-    const api = new BitbucketAPI({ hostname: opts.hostname ?? host.hostname, hostConfig: host.config });
+    const api = new BitbucketAPI({ hostname, hostConfig });
 
     // Build body from --field flags
     let body: Record<string, unknown> | undefined;

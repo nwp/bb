@@ -40,20 +40,11 @@ export const loginCmd = new Command("login")
 
     try {
       process.stdout.write(`Verifying token with ${protocol}://${hostname}... `);
-      // Try to hit the application properties endpoint (no auth required, but confirms connectivity)
-      // Then try an authenticated endpoint
-      const result = await api.get<{ displayName?: string; name?: string }>(
-        "/rest/api/1.0/users",
-        { limit: "1" }
-      ).catch(() => null);
-
-      // Try to get current user info via the inbox plugin or just save
+      await api.get("/rest/api/1.0/users", { limit: "1" });
       console.log(chalk.green("✓ Authenticated"));
-
-      hostConfig.user = undefined; // Will be populated if we can detect it
-    } catch (err) {
+    } catch (err: any) {
       console.log(chalk.red("✗ Failed"));
-      console.error(chalk.red(`Could not connect to ${hostname}: ${err}`));
+      console.error(chalk.red(`Could not connect to ${hostname}: ${err.message ?? err}`));
       process.exit(1);
     }
 

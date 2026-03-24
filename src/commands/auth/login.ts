@@ -6,7 +6,7 @@ import { BitbucketAPI } from "../../lib/api.js";
 export const loginCmd = new Command("login")
   .description("Authenticate with a Bitbucket Server instance")
   .option("-h, --hostname <hostname>", "Bitbucket Server hostname (e.g. bitbucket.example.com)")
-  .option("-t, --token <token>", "HTTP access token (personal access token)")
+  .option("-t, --token <token>", "HTTP access token")
   .option("--protocol <protocol>", "Protocol to use (https or http)", "https")
   .action(async (opts) => {
     let hostname = opts.hostname;

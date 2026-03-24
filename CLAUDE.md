@@ -7,7 +7,7 @@ This repository contains `bb`, a Bitbucket Server CLI modeled after GitHub's `gh
 - Runtime: Bun
 - Language: TypeScript (strict mode)
 - CLI framework: Commander.js
-- No test framework yet — run `bun run typecheck` to verify types
+- Tests: Bun test runner (`bun test`)
 
 ### Project structure
 
@@ -29,11 +29,17 @@ src/commands/api/      Raw API command
 bun run bin/bb.ts <command>
 ```
 
-### Type checking
+### Testing
 
 ```sh
-bun run typecheck
+bun test              # run all tests
+bun run typecheck     # type check only
 ```
+
+Tests live in `src/lib/__tests__/` and cover the core library layer:
+context (URL parsing), API client (auth, pagination, errors),
+formatting utils, and config management. The API tests use a local
+mock HTTP server — no external dependencies needed.
 
 ## Using `bb` as a tool
 

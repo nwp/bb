@@ -9,6 +9,7 @@
   "scripts": {
     "dev": "bun run bin/bb.ts",
     "build": "bun build bin/bb.ts --outdir dist --target bun",
+    "test": "bun test",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

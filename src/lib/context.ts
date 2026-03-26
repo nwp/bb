@@ -1,6 +1,7 @@
 import { $ } from "bun";
 import { getHostConfig, getDefaultHost, type HostConfig } from "./config.js";
 import { BitbucketAPI } from "./api.js";
+import { getCacheEntry, setCacheEntry } from "./repo-cache.js";
 
 export interface RepoContext {
   hostname: string;
@@ -99,41 +100,56 @@ export async function resolveContext(opts?: {
 }): Promise<RepoContext> {
   if (opts?.repo) {
     const parts = opts.repo.split("/");
+    let ctx: RepoContext;
     if (parts.length === 3) {
       const [hostname, project, repo] = parts;
       const hostConfig = await getHostConfig(hostname);
       if (!hostConfig) throw new Error(`Not authenticated to ${hostname}. Run: bb auth login`);
-      return {
-        hostname,
-        hostConfig,
-        project,
-        repo,
-        api: new BitbucketAPI({ hostname, hostConfig }),
-      };
+      ctx = { hostname, hostConfig, project, repo, api: new BitbucketAPI({ hostname, hostConfig }) };
     } else if (parts.length === 2) {
       const [project, repo] = parts;
       const defaultHost = await getDefaultHost();
       if (!defaultHost) throw new Error("Not authenticated to any host. Run: bb auth login");
-      return {
+      ctx = {
         hostname: defaultHost.hostname,
         hostConfig: defaultHost.config,
         project,
         repo,
         api: new BitbucketAPI({ hostname: defaultHost.hostname, hostConfig: defaultHost.config }),
       };
+    } else {
+      throw new Error("Invalid repo format. Use PROJECT/repo or hostname/PROJECT/repo");
     }
-    throw new Error("Invalid repo format. Use PROJECT/repo or hostname/PROJECT/repo");
+    setCacheEntry(process.cwd(), { hostname: ctx.hostname, project: ctx.project, repo: ctx.repo }).catch(() => {});
+    return ctx;
   }
 
   const ctx = await detectContext();
-  if (!ctx) {
-    throw new Error(
-      "Could not determine repository context.\n" +
-        "Either run this command from within a Bitbucket Server git repo,\n" +
-        "or specify --repo PROJECT/repo"
-    );
+  if (ctx) {
+    setCacheEntry(process.cwd(), { hostname: ctx.hostname, project: ctx.project, repo: ctx.repo }).catch(() => {});
+    return ctx;
   }
-  return ctx;
+
+  // Fall back to cache for the current working directory
+  const cached = await getCacheEntry(process.cwd());
+  if (cached) {
+    const hostConfig = await getHostConfig(cached.hostname);
+    if (hostConfig) {
+      return {
+        hostname: cached.hostname,
+        hostConfig,
+        project: cached.project,
+        repo: cached.repo,
+        api: new BitbucketAPI({ hostname: cached.hostname, hostConfig }),
+      };
+    }
+  }
+
+  throw new Error(
+    "Could not determine repository context.\n" +
+      "Either run this command from within a Bitbucket Server git repo,\n" +
+      "or specify --repo PROJECT/repo"
+  );
 }
 
 /** Create an API client for a given hostname */

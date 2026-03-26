@@ -6,6 +6,7 @@ import { repoCmd } from "../src/commands/repo/index.js";
 import { prCmd } from "../src/commands/pr/index.js";
 import { apiCmd } from "../src/commands/api/index.js";
 import { skillCmd } from "../src/commands/skill/index.js";
+import { cacheCmd } from "../src/commands/cache/index.js";
 
 const program = new Command()
   .name("bb")
@@ -15,7 +16,8 @@ const program = new Command()
   .addCommand(repoCmd)
   .addCommand(prCmd)
   .addCommand(apiCmd)
-  .addCommand(skillCmd);
+  .addCommand(skillCmd)
+  .addCommand(cacheCmd);
 
 program.parseAsync(process.argv).catch((err) => {
   console.error(err.message);

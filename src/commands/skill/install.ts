@@ -13,6 +13,7 @@ export const skillInstallCmd = new Command("install")
     "-a, --agent <agent>",
     `Target agent: ${AGENTS.map((a) => a.id).join(", ")}, or "all" for all detected`
   )
+  .option("-p, --path <dir>", "Directory to write SKILL.md into (for unsupported agents)")
   .option("--list", "List supported agents and detection status")
   .option("--force", "Overwrite existing skill files")
   .option("--dry-run", "Show what would be installed without writing files")
@@ -21,6 +22,31 @@ export const skillInstallCmd = new Command("install")
     if (!repoRoot) {
       console.error(chalk.red("Not inside a git repository."));
       process.exit(1);
+    }
+
+    // --path: write SKILL.md directly into the specified directory
+    if (opts.path) {
+      const targetDir = resolve(opts.path);
+      const fullPath = join(targetDir, "SKILL.md");
+      const exists = existsSync(fullPath);
+
+      if (exists && !opts.force) {
+        console.log(chalk.yellow(`⚠ Skipped: ${fullPath} already exists (use --force to overwrite)`));
+        return;
+      }
+
+      const content = generateSkillContent({ id: "generic" } as AgentDef);
+
+      if (opts.dryRun) {
+        console.log(chalk.dim(`[dry-run] Would write: ${fullPath} (${content.length} bytes)`));
+        return;
+      }
+
+      await mkdir(targetDir, { recursive: true });
+      await writeFile(fullPath, content, "utf-8");
+      const verb = exists ? "Updated" : "Installed";
+      console.log(chalk.green(`✓ ${verb} bb skill → ${fullPath}`));
+      return;
     }
 
     // --list: show all agents and detection status

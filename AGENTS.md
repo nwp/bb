@@ -11,9 +11,6 @@ close, HTTP access tokens instead of OAuth).
 ## Quick reference
 
 ```
-bb auth login       # Authenticate (HTTP access token)
-bb auth status      # Check auth status
-
 bb repo list        # List repos
 bb repo view        # View current repo
 bb repo clone       # Clone a repo
@@ -30,38 +27,51 @@ bb pr review [N]    # Approve or request changes
 bb pr watch [N]     # Poll for activity
 
 bb api <endpoint>   # Raw API call
+
+bb cache list       # List cached project/repo entries
+bb cache delete     # Remove cache entry for CWD (or given path)
 ```
 
 ## Authentication
 
-`bb` uses HTTP access tokens (not OAuth, not app passwords). Before any
-operation, ensure authentication is configured:
+`bb` uses HTTP access tokens (not OAuth, not app passwords). Credentials are
+stored in `~/.config/bb/config.json`.
+
+**Assume the user is already authenticated.** Do not call `bb auth login` or
+`bb auth status` unless the user explicitly asks, or a command returns an
+authentication error.
+
+If you do need to authenticate non-interactively:
 
 ```sh
-# Check if already authenticated
-bb auth status
-
-# Login (non-interactive, preferred for agents)
 bb auth login --hostname bitbucket.example.com --token "$BB_TOKEN"
 
 # For HTTP (non-TLS) instances
 bb auth login --hostname bitbucket.internal --token "$BB_TOKEN" --protocol http
 ```
 
-Credentials are stored in `~/.config/bb/config.json`. If the environment
-variable `BB_TOKEN` is set, prefer passing it via `--token` rather than relying
-on stored config.
-
 ## Repository context
 
-`bb` auto-detects the project and repository from the current git remote
-(`origin`), just like `gh` detects `owner/repo`. Most commands work without
-arguments when run inside a cloned Bitbucket Server repository.
+`bb` resolves project and repository using this priority order:
 
-To target a different repo, use `-R PROJECT/repo-slug`:
+1. Explicit `-R PROJECT/repo-slug` flag
+2. Auto-detect from the current git remote (`origin`)
+3. **Cache** — `~/.bb-cli.json` stores the last resolved context per working
+   directory. Once any command succeeds in a directory, subsequent invocations
+   reuse the cached project/repo automatically.
+
+**You do not need to discover or pass project/repo on every command.** Run any
+`bb` command once from the repo directory and the context is cached.
 
 ```sh
+# Override for a one-off command
 bb pr list -R MYPROJ/my-repo
+
+# Inspect what is cached
+bb cache list
+
+# Clear a stale entry
+bb cache delete
 ```
 
 ## Common agent workflows

@@ -306,7 +306,7 @@ bb repo view --json
 
 ## Configuration
 
-Config is stored at `~/.config/bb/config.json`:
+Auth config is stored at `~/.config/bb/config.json`:
 
 ```json
 {
@@ -317,6 +317,24 @@ Config is stored at `~/.config/bb/config.json`:
     }
   }
 }
+```
+
+### Repository context cache
+
+`bb` caches the resolved project and repository for each working directory in
+`~/.bb-cli.json`. Once a command successfully resolves context (via git remote
+or `--repo`), subsequent invocations from the same directory work without a
+git remote or explicit flag.
+
+```sh
+# Inspect the cache
+bb cache list
+
+# Remove the entry for the current directory
+bb cache delete
+
+# Remove an entry for a specific path
+bb cache delete /path/to/repo
 ```
 
 ## Command reference
@@ -343,6 +361,9 @@ bb pr review        Approve or request changes
 bb pr watch         Watch for PR activity and status changes
 
 bb api <endpoint>   Make an authenticated API request
+
+bb cache list       List cached project/repo entries (~/.bb-cli.json)
+bb cache delete     Delete a cached entry (defaults to CWD)
 
 bb skill install    Install bb skill file for coding agents in this repo
 ```
@@ -383,6 +404,9 @@ bb skill install --agent copilot
 
 # Install for all detected agents
 bb skill install --agent all
+
+# Install for an agent not in the list — specify the target directory directly
+bb skill install --path .my-agent/instructions
 
 # Preview without writing files
 bb skill install --dry-run

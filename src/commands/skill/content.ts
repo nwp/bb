@@ -37,27 +37,28 @@ Use it to manage pull requests, repositories, and code review from the terminal.
 
 ## Authentication
 
-\`bb\` authenticates using HTTP access tokens (Bearer auth). Before any operation,
-ensure authentication is configured:
+\`bb\` authenticates using HTTP access tokens (Bearer auth). Credentials are
+stored in \`~/.config/bb/config.json\`.
 
-\`\`\`sh
-# Check if already authenticated
-bb auth status
-
-# Login (non-interactive — preferred for agents and scripts)
-bb auth login --hostname bitbucket.example.com --token "$BB_TOKEN"
-
-# For HTTP (non-TLS) instances
-bb auth login --hostname bitbucket.internal --token "$BB_TOKEN" --protocol http
-\`\`\`
-
-Credentials are stored in \`~/.config/bb/config.json\`.
+**Assume the user is already authenticated.** Do not call \`bb auth login\` or
+\`bb auth status\` unless the user explicitly asks you to, or a command fails
+with an authentication error.
 
 ## Repository context
 
-\`bb\` auto-detects the project and repository from the current git remote
-(\`origin\`). Most commands work without arguments inside a cloned Bitbucket
-Server repo. Override with \`-R PROJECT/repo-slug\`.
+\`bb\` resolves the project and repository using the following priority order:
+
+1. Explicit \`-R PROJECT/repo-slug\` flag
+2. Auto-detect from the current git remote (\`origin\`)
+3. **Cached value from \`~/.bb-cli.json\`** — whenever a command successfully
+   resolves a project/repo (via git remote or \`-R\`), the result is cached
+   keyed by the working directory path. Subsequent invocations from the same
+   directory reuse the cache automatically.
+
+This means **you do not need to discover or pass the project/repo on every
+command**. Run any \`bb\` command once from the repo directory and the context
+is cached for future calls. Use \`bb cache list\` to inspect cached entries and
+\`bb cache delete\` to remove a stale entry.
 
 ## Pull request workflow
 

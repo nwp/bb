@@ -22,6 +22,7 @@ bb pr merge [N]     # Merge PR
 bb pr close [N]     # Decline PR
 bb pr checkout N    # Check out PR branch
 bb pr diff [N]      # Show PR diff
+bb pr checks [N]    # View CI/build status
 bb pr comment N     # Add comment
 bb pr review [N]    # Approve or request changes
 bb pr watch [N]     # Poll for activity
@@ -168,7 +169,7 @@ bb repo list --json
 | Auth | `gh auth login` (OAuth) | `bb auth login --token` (HTTP access token) |
 | Close PR | `gh pr close` | `bb pr close` (calls decline API) |
 | Issues | `gh issue list` | Not available (use Jira) |
-| Checks/CI | `gh run list` | Use `bb api /rest/build-status/1.0/commits/<sha>` |
+| Checks/CI | `gh pr checks` | `bb pr checks` |
 | Gists | `gh gist` | Not available |
 | Releases | `gh release` | Not available |
 | Discussions | `gh discussion` | Not available |

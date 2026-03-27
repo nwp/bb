@@ -9,6 +9,7 @@ import { prDiffCmd } from "./diff.js";
 import { prCommentCmd } from "./comment.js";
 import { prReviewCmd } from "./review.js";
 import { prWatchCmd } from "./watch.js";
+import { prChecksCmd } from "./checks.js";
 
 export const prCmd = new Command("pr")
   .description("Manage pull requests")
@@ -21,4 +22,5 @@ export const prCmd = new Command("pr")
   .addCommand(prDiffCmd)
   .addCommand(prCommentCmd)
   .addCommand(prReviewCmd)
-  .addCommand(prWatchCmd);
+  .addCommand(prWatchCmd)
+  .addCommand(prChecksCmd);

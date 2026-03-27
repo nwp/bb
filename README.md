@@ -356,6 +356,7 @@ bb pr merge         Merge a pull request
 bb pr close         Decline (close) a pull request
 bb pr checkout      Check out a PR branch locally
 bb pr diff          View PR diff
+bb pr checks        View CI/build status for a PR
 bb pr comment       Comment on a pull request
 bb pr review        Approve or request changes
 bb pr watch         Watch for PR activity and status changes

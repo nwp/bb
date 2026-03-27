@@ -76,6 +76,10 @@ bb pr comment 42 --body "Looks good!"
 # Check out PR branch locally
 bb pr checkout 42
 
+# Check CI/build status
+bb pr checks 42
+bb pr checks 42 --watch      # poll until all checks complete
+
 # Watch for activity (polls until merged/declined)
 bb pr watch 42
 \`\`\`
@@ -87,22 +91,6 @@ bb repo list                    # List all repos
 bb repo list --project MYPROJ   # Filter by project
 bb repo view                    # View current repo
 bb repo clone PROJECT/my-repo   # Clone a repo
-\`\`\`
-
-## Raw API access
-
-For operations not covered by built-in commands:
-
-\`\`\`sh
-# GET
-bb api /rest/api/1.0/projects
-
-# POST with fields
-bb api /rest/api/1.0/projects/KEY/repos/slug/pull-requests \\
-  -X POST -f title="PR title" -f description="Body"
-
-# Filter output
-bb api /rest/api/1.0/projects --jq ".values[].key"
 \`\`\`
 
 ## JSON output
@@ -119,18 +107,17 @@ bb repo list --json
 
 | \`gh\` command | \`bb\` equivalent | Notes |
 |--------------|-----------------|-------|
-| \`gh auth login\` | \`bb auth login --token\` | HTTP access tokens, not OAuth |
 | \`gh pr list\` | \`bb pr list\` | |
 | \`gh pr create\` | \`bb pr create\` | |
 | \`gh pr merge\` | \`bb pr merge\` | |
 | \`gh pr close\` | \`bb pr close\` | Calls decline in Bitbucket |
 | \`gh pr view\` | \`bb pr view\` | |
 | \`gh pr diff\` | \`bb pr diff\` | |
+| \`gh pr checks\` | \`bb pr checks\` | CI/build status |
 | \`gh pr checkout\` | \`bb pr checkout\` | |
 | \`gh pr review --approve\` | \`bb pr review --approve\` | |
 | \`gh repo list\` | \`bb repo list\` | |
 | \`gh repo clone\` | \`bb repo clone\` | |
-| \`gh api\` | \`bb api\` | |
 
 ## Key differences
 

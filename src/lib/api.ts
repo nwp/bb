@@ -191,6 +191,13 @@ export class BitbucketAPI {
     );
   }
 
+  // Build status
+  async getBuildStatus(commitHash: string) {
+    return this.paginate<BBBuildStatus>(
+      `/rest/build-status/1.0/commits/${commitHash}`
+    );
+  }
+
   // User
   async getCurrentUser() {
     // Bitbucket Server doesn't have a direct /me endpoint in older versions
@@ -292,6 +299,15 @@ export interface BBActivity {
   user: BBUser;
   action: string;
   comment?: BBComment;
+}
+
+export interface BBBuildStatus {
+  state: string; // SUCCESSFUL, FAILED, INPROGRESS
+  key: string;
+  name?: string;
+  url: string;
+  description?: string;
+  dateAdded: number;
 }
 
 export interface BBLinks {

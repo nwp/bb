@@ -56,16 +56,24 @@ bb pr create --title "Description" --body "Details"
 bb pr create --title "Fix bug" --reviewer jsmith --reviewer adoe
 bb pr create --title "Backport" --base release/2.0
 
+# Edit a PR (title, description, base branch, reviewers)
+bb pr edit 42 --title "New title" --body "New description"
+bb pr edit 42 --add-reviewer jsmith --remove-reviewer adoe
+bb pr edit 42 --base develop
+
+# Mark a draft PR as ready for review
+bb pr ready 42
+
 # Review
 bb pr review 42 --approve
 bb pr review 42 --request-changes
-bb pr review 42 --body "Comment text"
 
 # Merge
 bb pr merge 42
 
-# Decline (close)
+# Decline (close) and reopen
 bb pr close 42
+bb pr reopen 42
 
 # View diff
 bb pr diff 42
@@ -109,8 +117,11 @@ bb repo list --json
 |--------------|-----------------|-------|
 | \`gh pr list\` | \`bb pr list\` | |
 | \`gh pr create\` | \`bb pr create\` | |
+| \`gh pr edit\` | \`bb pr edit\` | Title, description, base, reviewers |
+| \`gh pr ready\` | \`bb pr ready\` | Mark draft as ready |
 | \`gh pr merge\` | \`bb pr merge\` | |
 | \`gh pr close\` | \`bb pr close\` | Calls decline in Bitbucket |
+| \`gh pr reopen\` | \`bb pr reopen\` | Reopen a declined PR |
 | \`gh pr view\` | \`bb pr view\` | |
 | \`gh pr diff\` | \`bb pr diff\` | |
 | \`gh pr checks\` | \`bb pr checks\` | CI/build status |

@@ -352,8 +352,11 @@ bb repo clone       Clone a repository
 bb pr list          List pull requests
 bb pr view          View a pull request
 bb pr create        Create a pull request
+bb pr edit          Edit title, description, base branch, or reviewers
+bb pr ready         Mark a draft PR as ready for review
 bb pr merge         Merge a pull request
 bb pr close         Decline (close) a pull request
+bb pr reopen        Reopen a declined pull request
 bb pr checkout      Check out a PR branch locally
 bb pr diff          View PR diff
 bb pr checks        View CI/build status for a PR

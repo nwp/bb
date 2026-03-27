@@ -156,6 +156,20 @@ export class BitbucketAPI {
     );
   }
 
+  async reopenPR(projectKey: string, repoSlug: string, prId: number, version: number) {
+    return this.post<BBPullRequest>(
+      `${this.prBasePath(projectKey, repoSlug)}/${prId}/reopen`,
+      { version }
+    );
+  }
+
+  async updatePR(projectKey: string, repoSlug: string, prId: number, body: UpdatePRBody) {
+    return this.put<BBPullRequest>(
+      `${this.prBasePath(projectKey, repoSlug)}/${prId}`,
+      body
+    );
+  }
+
   async getPRDiff(projectKey: string, repoSlug: string, prId: number) {
     const url = `${this.prBasePath(projectKey, repoSlug)}/${prId}/diff`;
     const proto = this.baseUrl;
@@ -321,4 +335,13 @@ export interface CreatePRBody {
   fromRef: { id: string; repository: { slug: string; project: { key: string } } };
   toRef: { id: string; repository: { slug: string; project: { key: string } } };
   reviewers?: Array<{ user: { name: string } }>;
+}
+
+export interface UpdatePRBody {
+  version: number;
+  title?: string;
+  description?: string;
+  toRef?: { id: string; repository: { slug: string; project: { key: string } } };
+  reviewers?: Array<{ user: { name: string } }>;
+  draft?: boolean;
 }

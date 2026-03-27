@@ -18,8 +18,11 @@ bb repo clone       # Clone a repo
 bb pr list          # List pull requests
 bb pr view [N]      # View PR (or PR for current branch)
 bb pr create        # Create PR from current branch
+bb pr edit [N]      # Edit title, description, base, reviewers
+bb pr ready [N]     # Mark draft PR as ready for review
 bb pr merge [N]     # Merge PR
 bb pr close [N]     # Decline PR
+bb pr reopen N      # Reopen a declined PR
 bb pr checkout N    # Check out PR branch
 bb pr diff [N]      # Show PR diff
 bb pr checks [N]    # View CI/build status

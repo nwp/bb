@@ -35,7 +35,6 @@ const macosKeychain: KeychainBackend = {
 
   async set(account: string, token: string): Promise<boolean> {
     try {
-      // Delete first to avoid "already exists" errors
       await $`security delete-generic-password -s ${SERVICE} -a ${account}`.quiet().nothrow();
       await $`security add-generic-password -s ${SERVICE} -a ${account} -w ${token}`.quiet();
       return true;
@@ -70,7 +69,6 @@ const linuxKeychain: KeychainBackend = {
 
   async set(account: string, token: string): Promise<boolean> {
     try {
-      // secret-tool store reads the secret from stdin
       const proc = Bun.spawn(
         ["secret-tool", "store", "--label", `bb token for ${account}`, "service", SERVICE, "account", account],
         { stdin: "pipe" }

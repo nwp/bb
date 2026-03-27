@@ -1,6 +1,7 @@
 import { Command } from "commander";
 import chalk from "chalk";
-import { resolveContext, getCurrentBranch } from "../../lib/context.js";
+import type { BitbucketAPI } from "../../lib/api.js";
+import { resolveContext, resolvePRId } from "../../lib/context.js";
 import { formatDate, printTable } from "../../lib/format.js";
 
 export const prChecksCmd = new Command("checks")
@@ -11,21 +12,7 @@ export const prChecksCmd = new Command("checks")
   .option("-w, --watch", "Poll until all checks complete")
   .action(async (number, opts) => {
     const ctx = await resolveContext({ repo: opts.repo });
-    let prId = number ? parseInt(number, 10) : null;
-
-    if (!prId) {
-      const branch = await getCurrentBranch();
-      if (branch) {
-        const prs = await ctx.api.listPRs(ctx.project, ctx.repo, "OPEN");
-        const match = prs.find((pr) => pr.fromRef.displayId === branch);
-        if (match) prId = match.id;
-      }
-      if (!prId) {
-        console.error(chalk.red("No PR number specified and no PR found for current branch"));
-        process.exit(1);
-      }
-    }
-
+    const prId = await resolvePRId(ctx.api, ctx.project, ctx.repo, number);
     const pr = await ctx.api.getPR(ctx.project, ctx.repo, prId);
     const commitHash = pr.fromRef.latestCommit;
 
@@ -37,7 +24,7 @@ export const prChecksCmd = new Command("checks")
   });
 
 async function showChecks(
-  ctx: { api: import("../../lib/api.js").BitbucketAPI },
+  ctx: { api: BitbucketAPI },
   commitHash: string,
   prId: number,
   json: boolean
@@ -81,11 +68,11 @@ async function showChecks(
 }
 
 async function pollChecks(
-  ctx: { api: import("../../lib/api.js").BitbucketAPI },
+  ctx: { api: BitbucketAPI },
   commitHash: string,
   prId: number,
   json: boolean
-) {
+): Promise<void> {
   const INTERVAL = 10_000;
   while (true) {
     const done = await showChecks(ctx, commitHash, prId, json);

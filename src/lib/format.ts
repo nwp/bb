@@ -26,18 +26,16 @@ export function formatDate(ts: number): string {
 export function stateColor(state: string): string {
   switch (state.toUpperCase()) {
     case "OPEN":
+    case "APPROVED":
       return chalk.green(state);
     case "MERGED":
       return chalk.magenta(state);
     case "DECLINED":
     case "CLOSED":
-      return chalk.red(state);
-    case "APPROVED":
-      return chalk.green(state);
-    case "UNAPPROVED":
-      return chalk.yellow(state);
     case "NEEDS_WORK":
       return chalk.red(state);
+    case "UNAPPROVED":
+      return chalk.yellow(state);
     default:
       return state;
   }
@@ -56,7 +54,6 @@ export function printTable(rows: string[][]): void {
   const widths: number[] = [];
 
   for (let c = 0; c < colCount; c++) {
-    // Strip ANSI codes when measuring width
     widths[c] = Math.max(...rows.map((r) => stripAnsi(r[c] ?? "").length));
   }
 
@@ -74,8 +71,3 @@ function stripAnsi(str: string): string {
   return str.replace(/\x1B\[[0-?]*[ -/]*[@-~]/g, "");
 }
 
-/** Print an error in red and exit */
-export function fatal(msg: string): never {
-  console.error(chalk.red(`Error: ${msg}`));
-  process.exit(1);
-}

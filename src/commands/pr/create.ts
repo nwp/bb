@@ -22,26 +22,20 @@ export const prCreateCmd = new Command("create")
       process.exit(1);
     }
 
-    // Determine base branch - default to repo's default branch
     let base = opts.base;
     if (!base) {
-      const repo = await ctx.api.getRepo(ctx.project, ctx.repo);
-      // BB Server doesn't expose defaultBranch directly in repo response in all versions
-      // Try the branches endpoint
       try {
         const defaultBranch = await ctx.api.get<{ displayId: string }>(
           `/rest/api/1.0/projects/${ctx.project}/repos/${ctx.repo}/default-branch`
         );
         base = defaultBranch.displayId;
       } catch {
-        base = "main"; // fallback
+        base = "main";
       }
     }
 
-    // Title: use first commit message or prompt
     let title = opts.title;
     if (!title) {
-      // Try to use head branch name as title
       title = head
         .replace(/^(feature|bugfix|hotfix)\//i, "")
         .replace(/[-_]/g, " ")

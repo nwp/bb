@@ -59,12 +59,11 @@ export class BitbucketAPI {
           detail = json.errors.map((e: { message: string }) => e.message).join("; ");
         }
       } catch {
-        // use raw text
+        // raw text used as-is
       }
       throw new APIError(resp.status, resp.statusText, detail);
     }
 
-    // Some endpoints return 204 No Content
     if (resp.status === 204) return undefined as T;
 
     return (await resp.json()) as T;
@@ -104,8 +103,6 @@ export class BitbucketAPI {
 
     return all;
   }
-
-  // ─── Convenience methods ───────────────────────────────────────
 
   // Projects
   async listProjects() {
@@ -171,9 +168,8 @@ export class BitbucketAPI {
   }
 
   async getPRDiff(projectKey: string, repoSlug: string, prId: number) {
-    const url = `${this.prBasePath(projectKey, repoSlug)}/${prId}/diff`;
-    const proto = this.baseUrl;
-    const resp = await fetch(`${proto}${url}`, {
+    const path = `${this.prBasePath(projectKey, repoSlug)}/${prId}/diff`;
+    const resp = await fetch(`${this.baseUrl}${path}`, {
       headers: { ...this.headers(), Accept: "text/plain" },
     });
     if (!resp.ok) throw new APIError(resp.status, resp.statusText, await resp.text());
@@ -211,19 +207,6 @@ export class BitbucketAPI {
       `/rest/build-status/1.0/commits/${commitHash}`
     );
   }
-
-  // User
-  async getCurrentUser() {
-    // Bitbucket Server doesn't have a direct /me endpoint in older versions
-    // The application properties endpoint + recent repos can help, but
-    // we'll use the users endpoint with the authenticated user
-    const resp = await this.get<PagedResponse<BBUser>>(
-      "/rest/api/1.0/users",
-      { limit: "1", filter: "" }
-    );
-    // A better approach: use the inbox endpoint which requires auth
-    return null; // Will be populated from auth flow
-  }
 }
 
 export class APIError extends Error {
@@ -236,8 +219,6 @@ export class APIError extends Error {
     this.name = "APIError";
   }
 }
-
-// ─── Types ─────────────────────────────────────────────────────
 
 export interface BBProject {
   key: string;

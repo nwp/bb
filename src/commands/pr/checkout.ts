@@ -17,10 +17,8 @@ export const prCheckoutCmd = new Command("checkout")
     console.log(`Checking out PR #${prId} (${chalk.cyan(branch)})...`);
 
     try {
-      // Try to check out existing branch first
       await $`git checkout ${branch}`.quiet();
     } catch {
-      // Fetch and create tracking branch
       await $`git fetch origin ${branch}`.quiet();
       await $`git checkout -b ${branch} origin/${branch}`.quiet();
     }

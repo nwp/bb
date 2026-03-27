@@ -30,7 +30,7 @@ If a \`bb\` command fails with an auth error, tell the user to run
 
 1. Explicit \`-R PROJECT/repo-slug\` flag
 2. Auto-detect from the current git remote (\`origin\`)
-3. **Cached value from \`~/.bb-cli.json\`** — whenever a command successfully
+3. **Cached value from \`~/.bb.json\`** — whenever a command successfully
    resolves a project/repo (via git remote or \`-R\`), the result is cached
    keyed by the working directory path. Subsequent invocations from the same
    directory reuse the cache automatically.

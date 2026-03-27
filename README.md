@@ -322,7 +322,7 @@ Auth config is stored at `~/.config/bb/config.json`:
 ### Repository context cache
 
 `bb` caches the resolved project and repository for each working directory in
-`~/.bb-cli.json`. Once a command successfully resolves context (via git remote
+`~/.bb.json`. Once a command successfully resolves context (via git remote
 or `--repo`), subsequent invocations from the same directory work without a
 git remote or explicit flag.
 
@@ -362,7 +362,7 @@ bb pr watch         Watch for PR activity and status changes
 
 bb api <endpoint>   Make an authenticated API request
 
-bb cache list       List cached project/repo entries (~/.bb-cli.json)
+bb cache list       List cached project/repo entries (~/.bb.json)
 bb cache delete     Delete a cached entry (defaults to CWD)
 
 bb skill install    Install bb skill file for coding agents in this repo

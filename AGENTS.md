@@ -46,7 +46,7 @@ If a `bb` command fails with an auth error, tell the user to run
 
 1. Explicit `-R PROJECT/repo-slug` flag
 2. Auto-detect from the current git remote (`origin`)
-3. **Cache** — `~/.bb-cli.json` stores the last resolved context per working
+3. **Cache** — `~/.bb.json` stores the last resolved context per working
    directory. Once any command succeeds in a directory, subsequent invocations
    reuse the cached project/repo automatically.
 

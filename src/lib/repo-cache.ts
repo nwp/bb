@@ -11,7 +11,7 @@ export interface CacheEntry {
 
 export type RepoCache = Record<string, CacheEntry>;
 
-const CACHE_FILE = join(homedir(), ".bb-cli.json");
+const CACHE_FILE = join(homedir(), ".bb.json");
 
 export function cacheFilePath(): string {
   return CACHE_FILE;

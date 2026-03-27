@@ -33,10 +33,10 @@ Tests live in `src/lib/__tests__/` and cover the core library layer. The API tes
 
 **Library layer** (`src/lib/`):
 - `api.ts` — `BitbucketAPI` class: typed REST client with Bearer auth, auto-pagination (`paginate<T>`), and convenience methods for projects, repos, and PRs. All BB Server types (`BBPullRequest`, `BBRepo`, etc.) are defined here.
-- `context.ts` — `resolveContext()`: resolves the current repo context via three fallbacks: explicit `-R` flag → git remote parsing → `~/.bb-cli.json` cache. `parseRemoteUrl()` handles HTTPS, SSH, and SCP-style Bitbucket URLs.
+- `context.ts` — `resolveContext()`: resolves the current repo context via three fallbacks: explicit `-R` flag → git remote parsing → `~/.bb.json` cache. `parseRemoteUrl()` handles HTTPS, SSH, and SCP-style Bitbucket URLs.
 - `config.ts` — Manages `~/.config/bb/config.json`. Auth tokens are stored in the OS keychain when available (macOS Keychain / Linux libsecret), falling back to the config file.
 - `keychain.ts` — Platform-specific keychain backends (macOS `security` CLI, Linux `secret-tool`). Cached singleton detection.
-- `repo-cache.ts` — Per-directory project/repo cache at `~/.bb-cli.json` so subsequent commands skip git remote parsing.
+- `repo-cache.ts` — Per-directory project/repo cache at `~/.bb.json` so subsequent commands skip git remote parsing.
 - `format.ts` — Terminal output helpers: relative dates, ANSI-colored state labels, table alignment with `printTable()`, `fatal()` for error-and-exit.
 
 **Command layer** (`src/commands/`): each group (`auth/`, `repo/`, `pr/`, `api/`, `cache/`, `skill/`) has an `index.ts` that registers subcommands. Every command follows the same pattern: parse options → `resolveContext()` → call `BitbucketAPI` methods → format output (or `--json` for raw JSON).

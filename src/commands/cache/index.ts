@@ -3,6 +3,6 @@ import { cacheListCmd } from "./list.js";
 import { cacheDeleteCmd } from "./delete.js";
 
 export const cacheCmd = new Command("cache")
-  .description("Manage the repository context cache (~/.bb-cli.json)")
+  .description("Manage the repository context cache (~/.bb.json)")
   .addCommand(cacheListCmd)
   .addCommand(cacheDeleteCmd);

@@ -65,6 +65,72 @@ beforeAll(() => {
         return new Response("Internal Server Error", { status: 500 });
       }
 
+      // PR endpoints
+      const prMatch = url.pathname.match(
+        /^\/rest\/api\/1\.0\/projects\/(\w+)\/repos\/([\w-]+)\/pull-requests(?:\/(\d+)(?:\/(reopen|merge|decline|diff|activities|comments|approve))?)?$/
+      );
+      if (prMatch) {
+        const [, , , prIdStr, action] = prMatch;
+
+        if (!prIdStr && req.method === "GET") {
+          return Response.json({
+            size: 1, limit: 25, start: 0, isLastPage: true,
+            values: [
+              { id: 42, version: 1, title: "Test PR", state: "OPEN",
+                fromRef: { id: "refs/heads/feature/test", displayId: "feature/test", latestCommit: "abc123" },
+                toRef: { id: "refs/heads/main", displayId: "main", latestCommit: "def456" },
+                author: { user: { name: "tester", displayName: "Tester" } },
+                reviewers: [{ user: { name: "reviewer1", displayName: "Reviewer One" }, status: "UNAPPROVED" }],
+              },
+            ],
+          });
+        }
+
+        const prId = parseInt(prIdStr ?? "0", 10);
+
+        if (action === "reopen" && req.method === "POST") {
+          return Response.json({ id: prId, version: 2, state: "OPEN", title: "Reopened PR",
+            fromRef: { displayId: "feature/test" }, toRef: { displayId: "main" } });
+        }
+
+        if (!action && req.method === "PUT") {
+          return req.json().then((body: Record<string, unknown>) =>
+            Response.json({ id: prId, version: (body.version as number) + 1, state: "OPEN",
+              title: body.title ?? "Original Title",
+              description: body.description ?? "",
+              draft: body.draft ?? false,
+              fromRef: { displayId: "feature/test" },
+              toRef: { displayId: "main" },
+              reviewers: (body.reviewers as Array<{ user: { name: string } }> ?? []).map((r) => ({
+                user: { name: r.user.name, displayName: r.user.name },
+                status: "UNAPPROVED",
+              })),
+            })
+          );
+        }
+
+        if (!action && req.method === "GET" && prId) {
+          return Response.json({ id: prId, version: 1, title: "Test PR", state: "OPEN",
+            fromRef: { id: "refs/heads/feature/test", displayId: "feature/test", latestCommit: "abc123" },
+            toRef: { id: "refs/heads/main", displayId: "main" },
+            author: { user: { name: "tester" } },
+            reviewers: [{ user: { name: "reviewer1", displayName: "Reviewer One" }, status: "UNAPPROVED" }],
+          });
+        }
+      }
+
+      // Build status
+      const buildMatch = url.pathname.match(/^\/rest\/build-status\/1\.0\/commits\/(\w+)$/);
+      if (buildMatch && req.method === "GET") {
+        return Response.json({
+          size: 2, limit: 25, start: 0, isLastPage: true,
+          values: [
+            { state: "SUCCESSFUL", key: "build-1", name: "CI Build", url: "https://ci.example.com/1", dateAdded: Date.now() },
+            { state: "FAILED", key: "build-2", name: "Lint", url: "https://ci.example.com/2", dateAdded: Date.now() },
+          ],
+        });
+      }
+
       return Response.json({ errors: [{ message: "Not found" }] }, { status: 404 });
     },
   });
@@ -188,6 +254,63 @@ describe("BitbucketAPI", () => {
         expect(err).toBeInstanceOf(APIError);
         expect((err as APIError).status).toBe(404);
       }
+    });
+  });
+
+  describe("PR convenience methods", () => {
+    test("listPRs returns PRs for a repo", async () => {
+      const api = createAPI();
+      const prs = await api.listPRs("PROJ", "my-repo");
+      expect(prs).toHaveLength(1);
+      expect(prs[0].id).toBe(42);
+      expect(prs[0].fromRef.displayId).toBe("feature/test");
+    });
+
+    test("getPR returns a single PR", async () => {
+      const api = createAPI();
+      const pr = await api.getPR("PROJ", "my-repo", 42);
+      expect(pr.id).toBe(42);
+      expect(pr.title).toBe("Test PR");
+    });
+
+    test("updatePR sends PUT and returns updated PR", async () => {
+      const api = createAPI();
+      const updated = await api.updatePR("PROJ", "my-repo", 42, {
+        version: 1,
+        title: "Updated Title",
+        reviewers: [{ user: { name: "jsmith" } }],
+      });
+      expect(updated.title).toBe("Updated Title");
+      expect(updated.version).toBe(2);
+      expect(updated.reviewers[0].user.name).toBe("jsmith");
+    });
+
+    test("updatePR can set draft to false", async () => {
+      const api = createAPI();
+      const updated = await api.updatePR("PROJ", "my-repo", 42, {
+        version: 1,
+        draft: false,
+      });
+      expect(updated.draft).toBe(false);
+    });
+
+    test("reopenPR sends POST to reopen endpoint", async () => {
+      const api = createAPI();
+      const reopened = await api.reopenPR("PROJ", "my-repo", 42, 1);
+      expect(reopened.id).toBe(42);
+      expect(reopened.state).toBe("OPEN");
+    });
+  });
+
+  describe("build status", () => {
+    test("getBuildStatus returns statuses for a commit", async () => {
+      const api = createAPI();
+      const statuses = await api.getBuildStatus("abc123");
+      expect(statuses).toHaveLength(2);
+      expect(statuses[0].state).toBe("SUCCESSFUL");
+      expect(statuses[0].name).toBe("CI Build");
+      expect(statuses[1].state).toBe("FAILED");
+      expect(statuses[1].name).toBe("Lint");
     });
   });
 });

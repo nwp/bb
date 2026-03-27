@@ -251,6 +251,7 @@ export interface BBPullRequest {
   state: string;
   open: boolean;
   closed: boolean;
+  draft?: boolean;
   createdDate: number;
   updatedDate: number;
   fromRef: BBRef;

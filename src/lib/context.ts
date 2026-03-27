@@ -71,85 +71,73 @@ export async function getCurrentBranch(): Promise<string | null> {
   }
 }
 
-/** Detect repo context from the current git directory */
-export async function detectContext(): Promise<RepoContext | null> {
+/** Parse repo identity (hostname/project/repo) from git remote. No auth required. */
+async function detectRepoIdentity(): Promise<{ hostname: string; project: string; repo: string } | null> {
   const remoteUrl = await getRemoteUrl();
   if (!remoteUrl) return null;
-
-  const parsed = parseRemoteUrl(remoteUrl);
-  if (!parsed) return null;
-
-  const hostConfig = await getHostConfig(parsed.hostname);
-  if (!hostConfig) return null;
-
-  return {
-    hostname: parsed.hostname,
-    hostConfig,
-    project: parsed.project,
-    repo: parsed.repo,
-    api: new BitbucketAPI({ hostname: parsed.hostname, hostConfig }),
-  };
+  return parseRemoteUrl(remoteUrl);
 }
 
 /**
- * Resolve context: either from git repo or from explicit flags.
- * Throws if no context can be determined.
+ * Resolve context: parse git remote or use explicit flags, then look up auth.
+ * The cache is written as soon as hostname/project/repo are known — before
+ * auth is checked — so subsequent commands can skip git remote parsing.
  */
 export async function resolveContext(opts?: {
   repo?: string; // format: PROJECT/repo or host/PROJECT/repo
 }): Promise<RepoContext> {
+  let hostname: string;
+  let project: string;
+  let repo: string;
+
   if (opts?.repo) {
     const parts = opts.repo.split("/");
-    let ctx: RepoContext;
     if (parts.length === 3) {
-      const [hostname, project, repo] = parts;
-      const hostConfig = await getHostConfig(hostname);
-      if (!hostConfig) throw new Error(`Not authenticated to ${hostname}. Run: bb auth login`);
-      ctx = { hostname, hostConfig, project, repo, api: new BitbucketAPI({ hostname, hostConfig }) };
+      [hostname, project, repo] = parts;
     } else if (parts.length === 2) {
-      const [project, repo] = parts;
+      [project, repo] = parts;
       const defaultHost = await getDefaultHost();
       if (!defaultHost) throw new Error("Not authenticated to any host. Run: bb auth login");
-      ctx = {
-        hostname: defaultHost.hostname,
-        hostConfig: defaultHost.config,
-        project,
-        repo,
-        api: new BitbucketAPI({ hostname: defaultHost.hostname, hostConfig: defaultHost.config }),
-      };
+      hostname = defaultHost.hostname;
     } else {
       throw new Error("Invalid repo format. Use PROJECT/repo or hostname/PROJECT/repo");
     }
-    setCacheEntry(process.cwd(), { hostname: ctx.hostname, project: ctx.project, repo: ctx.repo }).catch(() => {});
-    return ctx;
-  }
-
-  const ctx = await detectContext();
-  if (ctx) {
-    setCacheEntry(process.cwd(), { hostname: ctx.hostname, project: ctx.project, repo: ctx.repo }).catch(() => {});
-    return ctx;
-  }
-
-  // Fall back to cache for the current working directory
-  const cached = await getCacheEntry(process.cwd());
-  if (cached) {
-    const hostConfig = await getHostConfig(cached.hostname);
-    if (hostConfig) {
-      return {
-        hostname: cached.hostname,
-        hostConfig,
-        project: cached.project,
-        repo: cached.repo,
-        api: new BitbucketAPI({ hostname: cached.hostname, hostConfig }),
-      };
+  } else {
+    // Try git remote first
+    const identity = await detectRepoIdentity();
+    if (identity) {
+      ({ hostname, project, repo } = identity);
+    } else {
+      // Fall back to cache
+      const cached = await getCacheEntry(process.cwd());
+      if (cached) {
+        ({ hostname, project, repo } = cached);
+      } else {
+        throw new Error(
+          "Could not determine repository context.\n" +
+            "Either run this command from within a Bitbucket Server git repo,\n" +
+            "or specify --repo PROJECT/repo"
+        );
+      }
     }
   }
 
-  throw new Error(
-    "Could not determine repository context.\n" +
-      "Either run this command from within a Bitbucket Server git repo,\n" +
-      "or specify --repo PROJECT/repo"
-  );
+  // Cache the identity so future runs skip git remote parsing
+  setCacheEntry(process.cwd(), { hostname, project, repo }).catch(() => {});
+
+  // Now resolve auth
+  const hostConfig = await getHostConfig(hostname);
+  if (!hostConfig) {
+    throw new Error(`Not authenticated to ${hostname}. Run: bb auth login`);
+  }
+
+  return {
+    hostname,
+    hostConfig,
+    project,
+    repo,
+    api: new BitbucketAPI({ hostname, hostConfig }),
+  };
 }
 
 /** Create an API client for a given hostname */

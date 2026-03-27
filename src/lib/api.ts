@@ -59,12 +59,11 @@ export class BitbucketAPI {
           detail = json.errors.map((e: { message: string }) => e.message).join("; ");
         }
       } catch {
-        // use raw text
+        // raw text used as-is
       }
       throw new APIError(resp.status, resp.statusText, detail);
     }
 
-    // Some endpoints return 204 No Content
     if (resp.status === 204) return undefined as T;
 
     return (await resp.json()) as T;
@@ -104,8 +103,6 @@ export class BitbucketAPI {
 
     return all;
   }
-
-  // ─── Convenience methods ───────────────────────────────────────
 
   // Projects
   async listProjects() {
@@ -156,10 +153,23 @@ export class BitbucketAPI {
     );
   }
 
+  async reopenPR(projectKey: string, repoSlug: string, prId: number, version: number) {
+    return this.post<BBPullRequest>(
+      `${this.prBasePath(projectKey, repoSlug)}/${prId}/reopen`,
+      { version }
+    );
+  }
+
+  async updatePR(projectKey: string, repoSlug: string, prId: number, body: UpdatePRBody) {
+    return this.put<BBPullRequest>(
+      `${this.prBasePath(projectKey, repoSlug)}/${prId}`,
+      body
+    );
+  }
+
   async getPRDiff(projectKey: string, repoSlug: string, prId: number) {
-    const url = `${this.prBasePath(projectKey, repoSlug)}/${prId}/diff`;
-    const proto = this.baseUrl;
-    const resp = await fetch(`${proto}${url}`, {
+    const path = `${this.prBasePath(projectKey, repoSlug)}/${prId}/diff`;
+    const resp = await fetch(`${this.baseUrl}${path}`, {
       headers: { ...this.headers(), Accept: "text/plain" },
     });
     if (!resp.ok) throw new APIError(resp.status, resp.statusText, await resp.text());
@@ -191,17 +201,11 @@ export class BitbucketAPI {
     );
   }
 
-  // User
-  async getCurrentUser() {
-    // Bitbucket Server doesn't have a direct /me endpoint in older versions
-    // The application properties endpoint + recent repos can help, but
-    // we'll use the users endpoint with the authenticated user
-    const resp = await this.get<PagedResponse<BBUser>>(
-      "/rest/api/1.0/users",
-      { limit: "1", filter: "" }
+  // Build status
+  async getBuildStatus(commitHash: string) {
+    return this.paginate<BBBuildStatus>(
+      `/rest/build-status/1.0/commits/${commitHash}`
     );
-    // A better approach: use the inbox endpoint which requires auth
-    return null; // Will be populated from auth flow
   }
 }
 
@@ -215,8 +219,6 @@ export class APIError extends Error {
     this.name = "APIError";
   }
 }
-
-// ─── Types ─────────────────────────────────────────────────────
 
 export interface BBProject {
   key: string;
@@ -249,6 +251,7 @@ export interface BBPullRequest {
   state: string;
   open: boolean;
   closed: boolean;
+  draft?: boolean;
   createdDate: number;
   updatedDate: number;
   fromRef: BBRef;
@@ -294,6 +297,15 @@ export interface BBActivity {
   comment?: BBComment;
 }
 
+export interface BBBuildStatus {
+  state: string; // SUCCESSFUL, FAILED, INPROGRESS
+  key: string;
+  name?: string;
+  url: string;
+  description?: string;
+  dateAdded: number;
+}
+
 export interface BBLinks {
   self?: Array<{ href: string }>;
   clone?: Array<{ href: string; name: string }>;
@@ -305,4 +317,13 @@ export interface CreatePRBody {
   fromRef: { id: string; repository: { slug: string; project: { key: string } } };
   toRef: { id: string; repository: { slug: string; project: { key: string } } };
   reviewers?: Array<{ user: { name: string } }>;
+}
+
+export interface UpdatePRBody {
+  version: number;
+  title?: string;
+  description?: string;
+  toRef?: { id: string; repository: { slug: string; project: { key: string } } };
+  reviewers?: Array<{ user: { name: string } }>;
+  draft?: boolean;
 }

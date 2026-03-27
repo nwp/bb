@@ -16,7 +16,6 @@ export const repoListCmd = new Command("list")
     if (opts.project) {
       repos = await api.listRepos(opts.project);
     } else {
-      // List repos across all projects
       repos = await api.paginate<any>("/rest/api/1.0/repos");
     }
 

@@ -322,7 +322,7 @@ Auth config is stored at `~/.config/bb/config.json`:
 ### Repository context cache
 
 `bb` caches the resolved project and repository for each working directory in
-`~/.bb-cli.json`. Once a command successfully resolves context (via git remote
+`~/.bb.json`. Once a command successfully resolves context (via git remote
 or `--repo`), subsequent invocations from the same directory work without a
 git remote or explicit flag.
 
@@ -352,17 +352,21 @@ bb repo clone       Clone a repository
 bb pr list          List pull requests
 bb pr view          View a pull request
 bb pr create        Create a pull request
+bb pr edit          Edit title, description, base branch, or reviewers
+bb pr ready         Mark a draft PR as ready for review
 bb pr merge         Merge a pull request
 bb pr close         Decline (close) a pull request
+bb pr reopen        Reopen a declined pull request
 bb pr checkout      Check out a PR branch locally
 bb pr diff          View PR diff
+bb pr checks        View CI/build status for a PR
 bb pr comment       Comment on a pull request
 bb pr review        Approve or request changes
 bb pr watch         Watch for PR activity and status changes
 
 bb api <endpoint>   Make an authenticated API request
 
-bb cache list       List cached project/repo entries (~/.bb-cli.json)
+bb cache list       List cached project/repo entries (~/.bb.json)
 bb cache delete     Delete a cached entry (defaults to CWD)
 
 bb skill install    Install bb skill file for coding agents in this repo
@@ -372,22 +376,23 @@ Run `bb <command> --help` for detailed usage of any command.
 
 ## Coding agent skill files
 
-`bb` can auto-generate skill/instruction files so that coding agents in your
-repo know how to use the CLI. It detects which agents are configured by looking
-for their marker directories and places the skill file in the right location.
+`bb` can auto-generate skill files so that coding agents in your repo know
+how to use the CLI. It detects which agents are configured by looking for
+their marker directories and places a `skills/bb/SKILL.md` file with YAML
+frontmatter (`name`, `description`) inside each agent's config directory.
 
 ### Supported agents
 
 | Agent | Detection | Skill path |
 |-------|-----------|------------|
 | Claude Code | `.claude/` | `.claude/skills/bb/SKILL.md` |
-| GitHub Copilot | `.github/` | `.github/instructions/bb.instructions.md` |
-| Cursor | `.cursor/` or `.cursorrules` | `.cursor/rules/bb.md` |
-| Windsurf | `.windsurfrules` or `.codeium/` | `.windsurf/rules/bb.md` |
-| OpenAI Codex | `.codex/` or `AGENTS.md` | `.codex/skills/bb.md` |
-| Amazon Q | `.amazonq/` | `.amazonq/rules/bb.md` |
-| Augment Code | `.augment/` or `.augment-guidelines` | `.augment/rules/bb.md` |
-| Roo Code / Cline | `.roo/` or `.clinerules` | `.roo/rules/bb.md` |
+| GitHub Copilot | `.github/` | `.github/skills/bb/SKILL.md` |
+| Cursor | `.cursor/` or `.cursorrules` | `.cursor/skills/bb/SKILL.md` |
+| Windsurf | `.windsurfrules` or `.codeium/` | `.windsurf/skills/bb/SKILL.md` |
+| OpenAI Codex | `.codex/` or `AGENTS.md` | `.codex/skills/bb/SKILL.md` |
+| Amazon Q | `.amazonq/` | `.amazonq/skills/bb/SKILL.md` |
+| Augment Code | `.augment/` or `.augment-guidelines` | `.augment/skills/bb/SKILL.md` |
+| Roo Code / Cline | `.roo/` or `.clinerules` | `.roo/skills/bb/SKILL.md` |
 
 ### Usage
 
@@ -405,8 +410,8 @@ bb skill install --agent copilot
 # Install for all detected agents
 bb skill install --agent all
 
-# Install for an agent not in the list — specify the target directory directly
-bb skill install --path .my-agent/instructions
+# Install for an agent not in the list — specify the base directory
+bb skill install --path .my-agent
 
 # Preview without writing files
 bb skill install --dry-run

@@ -28,7 +28,6 @@ export const statusCmd = new Command("status")
       console.log(chalk.bold(hostname));
       console.log(`  Protocol: ${proto}`);
 
-      // Resolve the token
       let token: string | null = null;
       if (entry.token_store === "keychain") {
         token = await getToken(hostname);
@@ -40,7 +39,6 @@ export const statusCmd = new Command("status")
         console.log(`  Token:    ${chalk.red("missing")}`);
       }
 
-      // Test connectivity
       if (token) {
         const api = new BitbucketAPI({
           hostname,

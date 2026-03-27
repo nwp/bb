@@ -1,6 +1,6 @@
 import { Command } from "commander";
 import { existsSync } from "fs";
-import { mkdir, writeFile, readFile } from "fs/promises";
+import { mkdir, writeFile } from "fs/promises";
 import { dirname, join, resolve } from "path";
 import { $ } from "bun";
 import chalk from "chalk";
@@ -8,12 +8,12 @@ import { AGENTS, type AgentDef } from "./agents.js";
 import { generateSkillContent } from "./content.js";
 
 export const skillInstallCmd = new Command("install")
-  .description("Install bb skill/instruction file for coding agents in this repo")
+  .description("Install bb skill file for coding agents in this repo")
   .option(
     "-a, --agent <agent>",
     `Target agent: ${AGENTS.map((a) => a.id).join(", ")}, or "all" for all detected`
   )
-  .option("-p, --path <dir>", "Directory to write SKILL.md into (for unsupported agents)")
+  .option("-p, --path <dir>", "Base directory to write skills/bb/SKILL.md into (for unsupported agents)")
   .option("--list", "List supported agents and detection status")
   .option("--force", "Overwrite existing skill files")
   .option("--dry-run", "Show what would be installed without writing files")
@@ -24,10 +24,9 @@ export const skillInstallCmd = new Command("install")
       process.exit(1);
     }
 
-    // --path: write SKILL.md directly into the specified directory
     if (opts.path) {
-      const targetDir = resolve(opts.path);
-      const fullPath = join(targetDir, "SKILL.md");
+      const skillDir = join(resolve(opts.path), "skills", "bb");
+      const fullPath = join(skillDir, "SKILL.md");
       const exists = existsSync(fullPath);
 
       if (exists && !opts.force) {
@@ -42,14 +41,13 @@ export const skillInstallCmd = new Command("install")
         return;
       }
 
-      await mkdir(targetDir, { recursive: true });
+      await mkdir(skillDir, { recursive: true });
       await writeFile(fullPath, content, "utf-8");
       const verb = exists ? "Updated" : "Installed";
       console.log(chalk.green(`✓ ${verb} bb skill → ${fullPath}`));
       return;
     }
 
-    // --list: show all agents and detection status
     if (opts.list) {
       console.log(chalk.bold("Supported coding agents:\n"));
       for (const agent of AGENTS) {
@@ -67,7 +65,6 @@ export const skillInstallCmd = new Command("install")
       return;
     }
 
-    // Determine which agents to install for
     let targets: AgentDef[];
 
     if (opts.agent === "all") {
@@ -108,7 +105,6 @@ export const skillInstallCmd = new Command("install")
       }
     }
 
-    // Install skill files
     for (const agent of targets) {
       const fullPath = join(repoRoot, agent.skillPath);
       const exists = existsSync(fullPath);
@@ -127,7 +123,6 @@ export const skillInstallCmd = new Command("install")
         continue;
       }
 
-      // Create parent directories
       await mkdir(dirname(fullPath), { recursive: true });
       await writeFile(fullPath, content, "utf-8");
 

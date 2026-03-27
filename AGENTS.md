@@ -18,10 +18,14 @@ bb repo clone       # Clone a repo
 bb pr list          # List pull requests
 bb pr view [N]      # View PR (or PR for current branch)
 bb pr create        # Create PR from current branch
+bb pr edit [N]      # Edit title, description, base, reviewers
+bb pr ready [N]     # Mark draft PR as ready for review
 bb pr merge [N]     # Merge PR
 bb pr close [N]     # Decline PR
+bb pr reopen N      # Reopen a declined PR
 bb pr checkout N    # Check out PR branch
 bb pr diff [N]      # Show PR diff
+bb pr checks [N]    # View CI/build status
 bb pr comment N     # Add comment
 bb pr review [N]    # Approve or request changes
 bb pr watch [N]     # Poll for activity
@@ -34,21 +38,11 @@ bb cache delete     # Remove cache entry for CWD (or given path)
 
 ## Authentication
 
-`bb` uses HTTP access tokens (not OAuth, not app passwords). Credentials are
-stored in `~/.config/bb/config.json`.
-
-**Assume the user is already authenticated.** Do not call `bb auth login` or
-`bb auth status` unless the user explicitly asks, or a command returns an
-authentication error.
-
-If you do need to authenticate non-interactively:
-
-```sh
-bb auth login --hostname bitbucket.example.com --token "$BB_TOKEN"
-
-# For HTTP (non-TLS) instances
-bb auth login --hostname bitbucket.internal --token "$BB_TOKEN" --protocol http
-```
+The user handles authentication themselves. **Never run `bb auth login`,
+`bb auth logout`, `bb auth status`, or `bb auth migrate`.** These commands
+require interactive input or expose tokens, and calling them wastes time.
+If a `bb` command fails with an auth error, tell the user to run
+`bb auth login` — do not run it for them.
 
 ## Repository context
 
@@ -56,7 +50,7 @@ bb auth login --hostname bitbucket.internal --token "$BB_TOKEN" --protocol http
 
 1. Explicit `-R PROJECT/repo-slug` flag
 2. Auto-detect from the current git remote (`origin`)
-3. **Cache** — `~/.bb-cli.json` stores the last resolved context per working
+3. **Cache** — `~/.bb.json` stores the last resolved context per working
    directory. Once any command succeeds in a directory, subsequent invocations
    reuse the cached project/repo automatically.
 
@@ -178,7 +172,7 @@ bb repo list --json
 | Auth | `gh auth login` (OAuth) | `bb auth login --token` (HTTP access token) |
 | Close PR | `gh pr close` | `bb pr close` (calls decline API) |
 | Issues | `gh issue list` | Not available (use Jira) |
-| Checks/CI | `gh run list` | Use `bb api /rest/build-status/1.0/commits/<sha>` |
+| Checks/CI | `gh pr checks` | `bb pr checks` |
 | Gists | `gh gist` | Not available |
 | Releases | `gh release` | Not available |
 | Discussions | `gh discussion` | Not available |

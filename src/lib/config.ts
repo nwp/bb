@@ -57,7 +57,6 @@ export async function loadConfig(): Promise<BBConfig> {
 export async function saveConfig(config: BBConfig): Promise<void> {
   await ensureConfigDir();
   await writeFile(CONFIG_FILE, JSON.stringify(config, null, 2) + "\n", "utf-8");
-  // Restrict file permissions — config may contain fallback tokens
   await chmod(CONFIG_FILE, 0o600);
 }
 
@@ -72,7 +71,6 @@ async function resolveHostConfig(hostname: string, entry: HostEntry): Promise<Ho
     token = await getToken(hostname);
   }
 
-  // Fall back to file-stored token
   if (!token && entry.token) {
     token = entry.token;
   }
@@ -112,7 +110,6 @@ export async function setHostConfig(
 
   if (keychainStored) {
     entry.token_store = "keychain";
-    // Don't write the token to disk
   } else {
     entry.token_store = "file";
     entry.token = host.token;
@@ -127,8 +124,6 @@ export async function setHostConfig(
 export async function removeHostConfig(hostname: string): Promise<void> {
   const config = await loadConfig();
   const entry = config.hosts[hostname];
-
-  // Remove from keychain if it was stored there
   if (entry?.token_store === "keychain") {
     await deleteToken(hostname);
   }

@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { parseRemoteUrl } from "../context.js";
+import { parseRemoteUrl, resolvePRId } from "../context.js";
+import type { BitbucketAPI } from "../api.js";
 
 describe("parseRemoteUrl", () => {
   // ── HTTPS ──────────────────────────────────────────────────────
@@ -81,5 +82,22 @@ describe("parseRemoteUrl", () => {
   test("handles repo names with underscores", () => {
     const result = parseRemoteUrl("ssh://git@bb.corp.com:7999/PROJ/my_repo.git");
     expect(result).toEqual({ hostname: "bb.corp.com:7999", project: "PROJ", repo: "my_repo" });
+  });
+});
+
+describe("resolvePRId", () => {
+  test("returns parsed number when argument is provided", async () => {
+    const mockApi = {} as BitbucketAPI;
+    const result = await resolvePRId(mockApi, "PROJ", "repo", "42");
+    expect(result).toBe(42);
+  });
+
+  test("throws when no argument and no branch match", async () => {
+    const mockApi = {
+      listPRs: async () => [],
+    } as unknown as BitbucketAPI;
+    expect(resolvePRId(mockApi, "PROJ", "repo")).rejects.toThrow(
+      "No PR number specified"
+    );
   });
 });

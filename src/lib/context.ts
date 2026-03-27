@@ -20,21 +20,17 @@ export interface RepoContext {
  *   git@bitbucket.example.com:7999/PROJ/repo.git
  */
 export function parseRemoteUrl(url: string): { hostname: string; project: string; repo: string } | null {
-  // HTTPS: https://host/scm/PROJECT/repo.git or https://host/PROJECT/repo.git
   const httpsMatch = url.match(/https?:\/\/([^/]+)\/(?:scm\/)?([^/]+)\/([^/]+?)(?:\.git)?$/);
   if (httpsMatch) {
     return { hostname: httpsMatch[1], project: httpsMatch[2], repo: httpsMatch[3] };
   }
 
-  // SSH: ssh://git@host:port/PROJECT/repo.git or ssh://git@host/PROJECT/repo.git
-  // Preserves host:port so auth config lookups match (e.g. bitbucket.example.com:7990)
   const sshMatch = url.match(/ssh:\/\/[^@]+@([^:/]+)(?::(\d+))?\/([^/]+)\/([^/]+?)(?:\.git)?$/);
   if (sshMatch) {
     const host = sshMatch[2] ? `${sshMatch[1]}:${sshMatch[2]}` : sshMatch[1];
     return { hostname: host, project: sshMatch[3], repo: sshMatch[4] };
   }
 
-  // SCP-style: git@host:port/PROJECT/repo.git or git@host:PROJECT/repo.git
   const scpWithPortMatch = url.match(/[^@]+@([^:]+):(\d+)\/([^/]+)\/([^/]+?)(?:\.git)?$/);
   if (scpWithPortMatch) {
     return {
@@ -71,92 +67,68 @@ export async function getCurrentBranch(): Promise<string | null> {
   }
 }
 
-/** Detect repo context from the current git directory */
-export async function detectContext(): Promise<RepoContext | null> {
+async function detectRepoIdentity(): Promise<{ hostname: string; project: string; repo: string } | null> {
   const remoteUrl = await getRemoteUrl();
   if (!remoteUrl) return null;
-
-  const parsed = parseRemoteUrl(remoteUrl);
-  if (!parsed) return null;
-
-  const hostConfig = await getHostConfig(parsed.hostname);
-  if (!hostConfig) return null;
-
-  return {
-    hostname: parsed.hostname,
-    hostConfig,
-    project: parsed.project,
-    repo: parsed.repo,
-    api: new BitbucketAPI({ hostname: parsed.hostname, hostConfig }),
-  };
+  return parseRemoteUrl(remoteUrl);
 }
 
 /**
- * Resolve context: either from git repo or from explicit flags.
- * Throws if no context can be determined.
+ * Resolve context: parse git remote or use explicit flags, then look up auth.
+ * The cache is written as soon as hostname/project/repo are known — before
+ * auth is checked — so subsequent commands can skip git remote parsing.
  */
 export async function resolveContext(opts?: {
   repo?: string; // format: PROJECT/repo or host/PROJECT/repo
 }): Promise<RepoContext> {
+  let hostname: string;
+  let project: string;
+  let repo: string;
+
   if (opts?.repo) {
     const parts = opts.repo.split("/");
-    let ctx: RepoContext;
     if (parts.length === 3) {
-      const [hostname, project, repo] = parts;
-      const hostConfig = await getHostConfig(hostname);
-      if (!hostConfig) throw new Error(`Not authenticated to ${hostname}. Run: bb auth login`);
-      ctx = { hostname, hostConfig, project, repo, api: new BitbucketAPI({ hostname, hostConfig }) };
+      [hostname, project, repo] = parts;
     } else if (parts.length === 2) {
-      const [project, repo] = parts;
+      [project, repo] = parts;
       const defaultHost = await getDefaultHost();
       if (!defaultHost) throw new Error("Not authenticated to any host. Run: bb auth login");
-      ctx = {
-        hostname: defaultHost.hostname,
-        hostConfig: defaultHost.config,
-        project,
-        repo,
-        api: new BitbucketAPI({ hostname: defaultHost.hostname, hostConfig: defaultHost.config }),
-      };
+      hostname = defaultHost.hostname;
     } else {
       throw new Error("Invalid repo format. Use PROJECT/repo or hostname/PROJECT/repo");
     }
-    setCacheEntry(process.cwd(), { hostname: ctx.hostname, project: ctx.project, repo: ctx.repo }).catch(() => {});
-    return ctx;
-  }
-
-  const ctx = await detectContext();
-  if (ctx) {
-    setCacheEntry(process.cwd(), { hostname: ctx.hostname, project: ctx.project, repo: ctx.repo }).catch(() => {});
-    return ctx;
-  }
-
-  // Fall back to cache for the current working directory
-  const cached = await getCacheEntry(process.cwd());
-  if (cached) {
-    const hostConfig = await getHostConfig(cached.hostname);
-    if (hostConfig) {
-      return {
-        hostname: cached.hostname,
-        hostConfig,
-        project: cached.project,
-        repo: cached.repo,
-        api: new BitbucketAPI({ hostname: cached.hostname, hostConfig }),
-      };
+  } else {
+    const identity = await detectRepoIdentity();
+    if (identity) {
+      ({ hostname, project, repo } = identity);
+    } else {
+      const cached = await getCacheEntry(process.cwd());
+      if (cached) {
+        ({ hostname, project, repo } = cached);
+      } else {
+        throw new Error(
+          "Could not determine repository context.\n" +
+            "Either run this command from within a Bitbucket Server git repo,\n" +
+            "or specify --repo PROJECT/repo"
+        );
+      }
     }
   }
 
-  throw new Error(
-    "Could not determine repository context.\n" +
-      "Either run this command from within a Bitbucket Server git repo,\n" +
-      "or specify --repo PROJECT/repo"
-  );
-}
+  setCacheEntry(process.cwd(), { hostname, project, repo }).catch(() => {});
 
-/** Create an API client for a given hostname */
-export async function apiForHost(hostname: string): Promise<BitbucketAPI> {
   const hostConfig = await getHostConfig(hostname);
-  if (!hostConfig) throw new Error(`Not authenticated to ${hostname}. Run: bb auth login`);
-  return new BitbucketAPI({ hostname, hostConfig });
+  if (!hostConfig) {
+    throw new Error(`Not authenticated to ${hostname}. Run: bb auth login`);
+  }
+
+  return {
+    hostname,
+    hostConfig,
+    project,
+    repo,
+    api: new BitbucketAPI({ hostname, hostConfig }),
+  };
 }
 
 /** Create an API client from the default host */
@@ -167,4 +139,27 @@ export async function apiForDefaultHost(): Promise<{ hostname: string; api: Bitb
     hostname: defaultHost.hostname,
     api: new BitbucketAPI({ hostname: defaultHost.hostname, hostConfig: defaultHost.config }),
   };
+}
+
+/**
+ * Resolve a PR ID from an optional argument or the current branch.
+ * Many PR subcommands accept an optional PR number and fall back to
+ * finding the open PR whose source branch matches HEAD.
+ */
+export async function resolvePRId(
+  api: BitbucketAPI,
+  project: string,
+  repo: string,
+  numberArg?: string
+): Promise<number> {
+  if (numberArg) return parseInt(numberArg, 10);
+
+  const branch = await getCurrentBranch();
+  if (branch) {
+    const prs = await api.listPRs(project, repo, "OPEN");
+    const match = prs.find((pr) => pr.fromRef.displayId === branch);
+    if (match) return match.id;
+  }
+
+  throw new Error("No PR number specified and no PR found for current branch");
 }

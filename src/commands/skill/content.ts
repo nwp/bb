@@ -1,33 +1,14 @@
-/**
- * Generates the skill/instruction content for a given agent.
- * The core content is the same — only the preamble varies slightly
- * to match each agent's conventions.
- */
-
 import type { AgentDef } from "./agents.js";
 
-export function generateSkillContent(agent: AgentDef): string {
-  // Claude Code SKILL.md has a specific frontmatter format
-  if (agent.id === "claude") {
-    return `---
+const FRONTMATTER = `---
 name: bb
-description: Interact with Bitbucket Server (pull requests, repos, code review)
----
+description: CLI for Bitbucket Server / Data Center, modeled after GitHub's \`gh\`. Use it to manage pull requests, repositories, and code review from the terminal.
+---`;
+
+export function generateSkillContent(_agent: AgentDef): string {
+  return `${FRONTMATTER}
 
 ${CORE_CONTENT}`;
-  }
-
-  // GitHub Copilot instructions use a heading + applyTo pattern
-  if (agent.id === "copilot") {
-    return `---
-applyTo: "**"
----
-
-${CORE_CONTENT}`;
-  }
-
-  // All others use plain markdown
-  return CORE_CONTENT;
 }
 
 const CORE_CONTENT = `# bb — Bitbucket Server CLI
@@ -37,28 +18,28 @@ Use it to manage pull requests, repositories, and code review from the terminal.
 
 ## Authentication
 
-\`bb\` authenticates using HTTP access tokens (Bearer auth). Credentials are
-stored in \`~/.config/bb/config.json\`.
-
-**Assume the user is already authenticated.** Do not call \`bb auth login\` or
-\`bb auth status\` unless the user explicitly asks you to, or a command fails
-with an authentication error.
+The user handles authentication themselves. **Never run \`bb auth login\`,
+\`bb auth logout\`, \`bb auth status\`, or \`bb auth migrate\`.** These commands
+require interactive input or expose tokens, and calling them wastes time.
+If a \`bb\` command fails with an auth error, tell the user to run
+\`bb auth login\` — do not run it for them.
 
 ## Repository context
 
-\`bb\` resolves the project and repository using the following priority order:
+Bitbucket Server uses **project keys** (always UPPERCASE, e.g. \`PROJ\`, \`DEV\`,
+\`INFRA\`) to namespace repositories. When passing \`-R\`, use the project key,
+not the project name: \`-R PROJ/my-repo\`.
+
+\`bb\` resolves the project and repository automatically:
 
 1. Explicit \`-R PROJECT/repo-slug\` flag
 2. Auto-detect from the current git remote (\`origin\`)
-3. **Cached value from \`~/.bb-cli.json\`** — whenever a command successfully
-   resolves a project/repo (via git remote or \`-R\`), the result is cached
-   keyed by the working directory path. Subsequent invocations from the same
-   directory reuse the cache automatically.
+3. **Cached value from \`~/.bb.json\`** — the first successful resolution
+   caches hostname, project key, and repo slug for the working directory.
+   Subsequent commands reuse the cache automatically.
 
-This means **you do not need to discover or pass the project/repo on every
-command**. Run any \`bb\` command once from the repo directory and the context
-is cached for future calls. Use \`bb cache list\` to inspect cached entries and
-\`bb cache delete\` to remove a stale entry.
+**You do not need to discover or pass the project/repo on every command.**
+Run any \`bb\` command once from the repo directory and the context is cached.
 
 ## Pull request workflow
 
@@ -75,16 +56,24 @@ bb pr create --title "Description" --body "Details"
 bb pr create --title "Fix bug" --reviewer jsmith --reviewer adoe
 bb pr create --title "Backport" --base release/2.0
 
+# Edit a PR (title, description, base branch, reviewers)
+bb pr edit 42 --title "New title" --body "New description"
+bb pr edit 42 --add-reviewer jsmith --remove-reviewer adoe
+bb pr edit 42 --base develop
+
+# Mark a draft PR as ready for review
+bb pr ready 42
+
 # Review
 bb pr review 42 --approve
 bb pr review 42 --request-changes
-bb pr review 42 --body "Comment text"
 
 # Merge
 bb pr merge 42
 
-# Decline (close)
+# Decline (close) and reopen
 bb pr close 42
+bb pr reopen 42
 
 # View diff
 bb pr diff 42
@@ -94,6 +83,10 @@ bb pr comment 42 --body "Looks good!"
 
 # Check out PR branch locally
 bb pr checkout 42
+
+# Check CI/build status
+bb pr checks 42
+bb pr checks 42 --watch      # poll until all checks complete
 
 # Watch for activity (polls until merged/declined)
 bb pr watch 42
@@ -106,22 +99,6 @@ bb repo list                    # List all repos
 bb repo list --project MYPROJ   # Filter by project
 bb repo view                    # View current repo
 bb repo clone PROJECT/my-repo   # Clone a repo
-\`\`\`
-
-## Raw API access
-
-For operations not covered by built-in commands:
-
-\`\`\`sh
-# GET
-bb api /rest/api/1.0/projects
-
-# POST with fields
-bb api /rest/api/1.0/projects/KEY/repos/slug/pull-requests \\
-  -X POST -f title="PR title" -f description="Body"
-
-# Filter output
-bb api /rest/api/1.0/projects --jq ".values[].key"
 \`\`\`
 
 ## JSON output
@@ -138,18 +115,20 @@ bb repo list --json
 
 | \`gh\` command | \`bb\` equivalent | Notes |
 |--------------|-----------------|-------|
-| \`gh auth login\` | \`bb auth login --token\` | HTTP access tokens, not OAuth |
 | \`gh pr list\` | \`bb pr list\` | |
 | \`gh pr create\` | \`bb pr create\` | |
+| \`gh pr edit\` | \`bb pr edit\` | Title, description, base, reviewers |
+| \`gh pr ready\` | \`bb pr ready\` | Mark draft as ready |
 | \`gh pr merge\` | \`bb pr merge\` | |
 | \`gh pr close\` | \`bb pr close\` | Calls decline in Bitbucket |
+| \`gh pr reopen\` | \`bb pr reopen\` | Reopen a declined PR |
 | \`gh pr view\` | \`bb pr view\` | |
 | \`gh pr diff\` | \`bb pr diff\` | |
+| \`gh pr checks\` | \`bb pr checks\` | CI/build status |
 | \`gh pr checkout\` | \`bb pr checkout\` | |
 | \`gh pr review --approve\` | \`bb pr review --approve\` | |
 | \`gh repo list\` | \`bb repo list\` | |
 | \`gh repo clone\` | \`bb repo clone\` | |
-| \`gh api\` | \`bb api\` | |
 
 ## Key differences
 

@@ -13,7 +13,6 @@ export const loginCmd = new Command("login")
     let token = opts.token;
     const protocol = opts.protocol as "https" | "http";
 
-    // Interactive prompts if not provided as flags
     if (!hostname) {
       process.stdout.write("Bitbucket Server hostname: ");
       hostname = (await readLine()).trim();
@@ -34,7 +33,6 @@ export const loginCmd = new Command("login")
       }
     }
 
-    // Validate the token by making a test API call
     const hostConfig: HostConfig = { token, protocol };
     const api = new BitbucketAPI({ hostname, hostConfig });
 

@@ -9,7 +9,7 @@ describe("repo-cache", () => {
 
   beforeEach(async () => {
     tempDir = await mkdtemp(join(tmpdir(), "bb-cache-test-"));
-    cacheFile = join(tempDir, ".bb-cli.json");
+    cacheFile = join(tempDir, ".bb.json");
   });
 
   afterEach(async () => {
@@ -153,7 +153,7 @@ describe("repo-cache", () => {
 
 /**
  * Returns helpers that operate on an arbitrary file path (so we don't touch the
- * real ~/.bb-cli.json during test runs).
+ * real ~/.bb.json during test runs).
  */
 function getHelpers(filePath: string) {
   const { readFile: rf, writeFile: wf } = require("fs/promises");

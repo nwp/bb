@@ -34,21 +34,11 @@ bb cache delete     # Remove cache entry for CWD (or given path)
 
 ## Authentication
 
-`bb` uses HTTP access tokens (not OAuth, not app passwords). Credentials are
-stored in `~/.config/bb/config.json`.
-
-**Assume the user is already authenticated.** Do not call `bb auth login` or
-`bb auth status` unless the user explicitly asks, or a command returns an
-authentication error.
-
-If you do need to authenticate non-interactively:
-
-```sh
-bb auth login --hostname bitbucket.example.com --token "$BB_TOKEN"
-
-# For HTTP (non-TLS) instances
-bb auth login --hostname bitbucket.internal --token "$BB_TOKEN" --protocol http
-```
+The user handles authentication themselves. **Never run `bb auth login`,
+`bb auth logout`, `bb auth status`, or `bb auth migrate`.** These commands
+require interactive input or expose tokens, and calling them wastes time.
+If a `bb` command fails with an auth error, tell the user to run
+`bb auth login` — do not run it for them.
 
 ## Repository context
 

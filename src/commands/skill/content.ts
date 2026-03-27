@@ -1,33 +1,14 @@
-/**
- * Generates the skill/instruction content for a given agent.
- * The core content is the same — only the preamble varies slightly
- * to match each agent's conventions.
- */
-
 import type { AgentDef } from "./agents.js";
 
-export function generateSkillContent(agent: AgentDef): string {
-  // Claude Code SKILL.md has a specific frontmatter format
-  if (agent.id === "claude") {
-    return `---
+const FRONTMATTER = `---
 name: bb
-description: Interact with Bitbucket Server (pull requests, repos, code review)
----
+description: CLI for Bitbucket Server / Data Center, modeled after GitHub's \`gh\`. Use it to manage pull requests, repositories, and code review from the terminal.
+---`;
+
+export function generateSkillContent(_agent: AgentDef): string {
+  return `${FRONTMATTER}
 
 ${CORE_CONTENT}`;
-  }
-
-  // GitHub Copilot instructions use a heading + applyTo pattern
-  if (agent.id === "copilot") {
-    return `---
-applyTo: "**"
----
-
-${CORE_CONTENT}`;
-  }
-
-  // All others use plain markdown
-  return CORE_CONTENT;
 }
 
 const CORE_CONTENT = `# bb — Bitbucket Server CLI
@@ -37,12 +18,11 @@ Use it to manage pull requests, repositories, and code review from the terminal.
 
 ## Authentication
 
-\`bb\` authenticates using HTTP access tokens (Bearer auth). Credentials are
-stored in \`~/.config/bb/config.json\`.
-
-**Assume the user is already authenticated.** Do not call \`bb auth login\` or
-\`bb auth status\` unless the user explicitly asks you to, or a command fails
-with an authentication error.
+The user handles authentication themselves. **Never run \`bb auth login\`,
+\`bb auth logout\`, \`bb auth status\`, or \`bb auth migrate\`.** These commands
+require interactive input or expose tokens, and calling them wastes time.
+If a \`bb\` command fails with an auth error, tell the user to run
+\`bb auth login\` — do not run it for them.
 
 ## Repository context
 

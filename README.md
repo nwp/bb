@@ -372,22 +372,23 @@ Run `bb <command> --help` for detailed usage of any command.
 
 ## Coding agent skill files
 
-`bb` can auto-generate skill/instruction files so that coding agents in your
-repo know how to use the CLI. It detects which agents are configured by looking
-for their marker directories and places the skill file in the right location.
+`bb` can auto-generate skill files so that coding agents in your repo know
+how to use the CLI. It detects which agents are configured by looking for
+their marker directories and places a `skills/bb/SKILL.md` file with YAML
+frontmatter (`name`, `description`) inside each agent's config directory.
 
 ### Supported agents
 
 | Agent | Detection | Skill path |
 |-------|-----------|------------|
 | Claude Code | `.claude/` | `.claude/skills/bb/SKILL.md` |
-| GitHub Copilot | `.github/` | `.github/instructions/bb.instructions.md` |
-| Cursor | `.cursor/` or `.cursorrules` | `.cursor/rules/bb.md` |
-| Windsurf | `.windsurfrules` or `.codeium/` | `.windsurf/rules/bb.md` |
-| OpenAI Codex | `.codex/` or `AGENTS.md` | `.codex/skills/bb.md` |
-| Amazon Q | `.amazonq/` | `.amazonq/rules/bb.md` |
-| Augment Code | `.augment/` or `.augment-guidelines` | `.augment/rules/bb.md` |
-| Roo Code / Cline | `.roo/` or `.clinerules` | `.roo/rules/bb.md` |
+| GitHub Copilot | `.github/` | `.github/skills/bb/SKILL.md` |
+| Cursor | `.cursor/` or `.cursorrules` | `.cursor/skills/bb/SKILL.md` |
+| Windsurf | `.windsurfrules` or `.codeium/` | `.windsurf/skills/bb/SKILL.md` |
+| OpenAI Codex | `.codex/` or `AGENTS.md` | `.codex/skills/bb/SKILL.md` |
+| Amazon Q | `.amazonq/` | `.amazonq/skills/bb/SKILL.md` |
+| Augment Code | `.augment/` or `.augment-guidelines` | `.augment/skills/bb/SKILL.md` |
+| Roo Code / Cline | `.roo/` or `.clinerules` | `.roo/skills/bb/SKILL.md` |
 
 ### Usage
 
@@ -405,8 +406,8 @@ bb skill install --agent copilot
 # Install for all detected agents
 bb skill install --agent all
 
-# Install for an agent not in the list — specify the target directory directly
-bb skill install --path .my-agent/instructions
+# Install for an agent not in the list — specify the base directory
+bb skill install --path .my-agent
 
 # Preview without writing files
 bb skill install --dry-run

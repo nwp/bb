@@ -26,19 +26,20 @@ If a \`bb\` command fails with an auth error, tell the user to run
 
 ## Repository context
 
-\`bb\` resolves the project and repository using the following priority order:
+Bitbucket Server uses **project keys** (always UPPERCASE, e.g. \`PROJ\`, \`DEV\`,
+\`INFRA\`) to namespace repositories. When passing \`-R\`, use the project key,
+not the project name: \`-R PROJ/my-repo\`.
+
+\`bb\` resolves the project and repository automatically:
 
 1. Explicit \`-R PROJECT/repo-slug\` flag
 2. Auto-detect from the current git remote (\`origin\`)
-3. **Cached value from \`~/.bb.json\`** — whenever a command successfully
-   resolves a project/repo (via git remote or \`-R\`), the result is cached
-   keyed by the working directory path. Subsequent invocations from the same
-   directory reuse the cache automatically.
+3. **Cached value from \`~/.bb.json\`** — the first successful resolution
+   caches hostname, project key, and repo slug for the working directory.
+   Subsequent commands reuse the cache automatically.
 
-This means **you do not need to discover or pass the project/repo on every
-command**. Run any \`bb\` command once from the repo directory and the context
-is cached for future calls. Use \`bb cache list\` to inspect cached entries and
-\`bb cache delete\` to remove a stale entry.
+**You do not need to discover or pass the project/repo on every command.**
+Run any \`bb\` command once from the repo directory and the context is cached.
 
 ## Pull request workflow
 

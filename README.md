@@ -29,12 +29,15 @@ If you know `gh`, you already know `bb`.
 
 ### Prerequisites
 
-- [Bun](https://bun.sh) v1.0 or later
+- [Go](https://go.dev) 1.22 or later
 
-Install Bun if you don't have it:
+Install Go if you don't have it:
 
 ```sh
-curl -fsSL https://bun.sh/install | bash
+# macOS (Homebrew)
+brew install go
+
+# or download from https://go.dev/dl/
 ```
 
 ### Quick start (from source)
@@ -42,23 +45,21 @@ curl -fsSL https://bun.sh/install | bash
 ```sh
 git clone https://github.com/nwp/bb.git
 cd bb
-bun install
+go build -o bb .
 ```
 
 Run directly without building:
 
 ```sh
-bun run bin/bb.ts --help
+go run . --help
 ```
 
 ### Build a standalone binary
 
-Bun can compile the entire CLI into a single self-contained executable with no
-runtime dependencies — no need to have Bun or Node.js installed on the target
-machine:
+Go compiles to a single self-contained binary with no runtime dependencies:
 
 ```sh
-bun build bin/bb.ts --compile --outfile bb
+go build -o bb .
 ```
 
 This produces a single `bb` binary in the current directory. Test it:
@@ -73,7 +74,7 @@ Build the binary and move it into your PATH:
 
 ```sh
 # Build
-bun build bin/bb.ts --compile --outfile bb
+go build -o bb .
 
 # Install to a directory in your PATH
 sudo mv bb /usr/local/bin/bb
@@ -107,7 +108,7 @@ source ~/.zshrc
 Same as macOS:
 
 ```sh
-bun build bin/bb.ts --compile --outfile bb
+go build -o bb .
 sudo mv bb /usr/local/bin/bb
 ```
 
@@ -123,9 +124,12 @@ image:
 
 ```dockerfile
 # In your Dockerfile
-COPY --from=oven/bun:latest /usr/local/bin/bun /usr/local/bin/bun
+FROM golang:1.22 AS builder
 COPY . /opt/bb
-RUN cd /opt/bb && bun install && bun build bin/bb.ts --compile --outfile /usr/local/bin/bb
+RUN cd /opt/bb && go build -ldflags "-s -w" -o /usr/local/bin/bb .
+
+# In your final stage:
+COPY --from=builder /usr/local/bin/bb /usr/local/bin/bb
 ```
 
 For agents that need to authenticate non-interactively, set the token via flags:
@@ -157,42 +161,37 @@ Pull the latest source and rebuild:
 ```sh
 cd bb
 git pull
-bun install
-bun build bin/bb.ts --compile --outfile bb
+go build -o bb .
 sudo mv bb /usr/local/bin/bb
 ```
 
 ### Build and install a new version (release checklist)
 
-When you cut a new version, use this workflow:
-
-1. From the repo root, go to the `bin/` directory.
-2. Build the binary from inside `bin/`.
-3. Move the built binary into a directory in your machine `PATH`.
-4. Confirm the installed version.
-
 ```sh
-# 1) Go to bin/
-cd /path/to/bb/bin
+# 1) Build a release binary with version tag injected
+make build
 
-# 2) Build from bin/
-bun build bb.ts --compile --outfile bb
-
-# 3) Install on the machine (system-wide)
+# 2) Install system-wide
 sudo mv bb /usr/local/bin/bb
 
-# 4) Verify installed version
+# 3) Verify
 bb --version
 ```
 
-If you prefer a user-local install instead of `sudo`:
+If you prefer a user-local install:
 
 ```sh
-cd /path/to/bb/bin
-bun build bb.ts --compile --outfile bb
+make build
 mkdir -p ~/.local/bin
 mv bb ~/.local/bin/bb
 bb --version
+```
+
+Cross-compiled binaries for all platforms:
+
+```sh
+make build-all
+# Outputs: dist/bb-darwin-arm64, dist/bb-darwin-amd64, dist/bb-linux-arm64, dist/bb-linux-amd64
 ```
 
 ## Authentication
@@ -254,8 +253,8 @@ bb auth logout
 
 Tokens are stored in the **system keychain** when available:
 
-- **macOS**: Keychain Access (via `security`)
-- **Linux**: GNOME Keyring / KWallet (via `secret-tool` from `libsecret-tools`)
+- **macOS**: Keychain Access
+- **Linux**: GNOME Keyring / KWallet (via `go-keyring`)
 
 If no keychain is available, tokens fall back to `~/.config/bb/config.json`
 (mode `0600`) with a warning. To migrate existing plaintext tokens after
@@ -499,7 +498,7 @@ bb skill install --force
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and guidelines.
+See [CLAUDE.md](CLAUDE.md) for development setup, architecture, and build commands.
 
 ## License
 

@@ -162,6 +162,39 @@ bun build bin/bb.ts --compile --outfile bb
 sudo mv bb /usr/local/bin/bb
 ```
 
+### Build and install a new version (release checklist)
+
+When you cut a new version, use this workflow:
+
+1. From the repo root, go to the `bin/` directory.
+2. Build the binary from inside `bin/`.
+3. Move the built binary into a directory in your machine `PATH`.
+4. Confirm the installed version.
+
+```sh
+# 1) Go to bin/
+cd /path/to/bb/bin
+
+# 2) Build from bin/
+bun build bb.ts --compile --outfile bb
+
+# 3) Install on the machine (system-wide)
+sudo mv bb /usr/local/bin/bb
+
+# 4) Verify installed version
+bb --version
+```
+
+If you prefer a user-local install instead of `sudo`:
+
+```sh
+cd /path/to/bb/bin
+bun build bb.ts --compile --outfile bb
+mkdir -p ~/.local/bin
+mv bb ~/.local/bin/bb
+bb --version
+```
+
 ## Authentication
 
 `bb` authenticates using **HTTP access tokens** — the standard token mechanism in Bitbucket Server / Data Center. These are _not_ the same as Bitbucket Cloud app passwords.

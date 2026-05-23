@@ -19,7 +19,7 @@ func init() {
 	authLogoutCmd.Flags().StringVarP(&logoutHostname, "hostname", "h", "", "Hostname to log out of")
 }
 
-func runAuthLogout(_ *cobra.Command, _ []string) error {
+func runAuthLogout(cmd *cobra.Command, _ []string) error {
 	mgr := config.Default()
 	hostname := logoutHostname
 
@@ -29,9 +29,9 @@ func runAuthLogout(_ *cobra.Command, _ []string) error {
 			return fmt.Errorf("not logged in to any host")
 		}
 		if len(cfg.Hosts) > 1 {
-			fmt.Println("Multiple hosts configured. Specify --hostname:")
+			fmt.Fprintln(cmd.OutOrStdout(), "Multiple hosts configured. Specify --hostname:")
 			for h := range cfg.Hosts {
-				fmt.Println(" ", h)
+				fmt.Fprintln(cmd.OutOrStdout(), " ", h)
 			}
 			return fmt.Errorf("use --hostname to select a host")
 		}
@@ -43,6 +43,6 @@ func runAuthLogout(_ *cobra.Command, _ []string) error {
 	if err := mgr.RemoveHost(hostname); err != nil {
 		return err
 	}
-	fmt.Printf("Logged out of %s\n", hostname)
+	fmt.Fprintf(cmd.OutOrStdout(), "Logged out of %s\n", hostname)
 	return nil
 }

@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/nwp/bb/internal/config"
 	"github.com/spf13/cobra"
@@ -42,6 +43,7 @@ func init() {
 
 func runAPI(cmd *cobra.Command, args []string) error {
 	endpoint := args[0]
+	method := strings.ToUpper(apiFlags.method)
 
 	mgr := config.Default()
 	var rh *config.ResolvedHost
@@ -63,37 +65,43 @@ func runAPI(cmd *cobra.Command, args []string) error {
 	}
 
 	// Build query params / body from -f fields.
-	fields := url.Values{}
+	queryFields := url.Values{}
+	bodyFields := map[string]any{}
 	for _, f := range apiFlags.fields {
 		k, v, ok := strings.Cut(f, "=")
 		if !ok {
 			return fmt.Errorf("invalid field %q: expected key=value", f)
 		}
-		fields.Add(k, v)
+		queryFields.Add(k, v)
+		bodyFields[k] = v
 	}
 
 	u := fmt.Sprintf("%s://%s%s", protocol, rh.Hostname, endpoint)
-	if apiFlags.method == http.MethodGet && len(fields) > 0 {
-		u += "?" + fields.Encode()
-		fields = nil
+	if method == http.MethodGet && len(queryFields) > 0 {
+		u += "?" + queryFields.Encode()
 	}
 
 	var bodyReader io.Reader
-	if len(fields) > 0 {
-		bodyReader = strings.NewReader(fields.Encode())
+	if method != http.MethodGet && len(bodyFields) > 0 {
+		b, err := json.Marshal(bodyFields)
+		if err != nil {
+			return fmt.Errorf("encoding request body: %w", err)
+		}
+		bodyReader = strings.NewReader(string(b))
 	}
 
-	req, err := http.NewRequestWithContext(context.Background(), apiFlags.method, u, bodyReader)
+	req, err := http.NewRequestWithContext(context.Background(), method, u, bodyReader)
 	if err != nil {
 		return err
 	}
 	req.Header.Set("Authorization", "Bearer "+rh.Token)
 	req.Header.Set("Accept", "application/json")
 	if bodyReader != nil {
-		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		req.Header.Set("Content-Type", "application/json")
 	}
 
-	resp, err := http.DefaultClient.Do(req)
+	client := &http.Client{Timeout: 20 * time.Second}
+	resp, err := client.Do(req)
 	if err != nil {
 		return err
 	}

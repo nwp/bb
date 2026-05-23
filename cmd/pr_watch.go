@@ -65,11 +65,21 @@ func runPRWatch(cmd *cobra.Command, args []string) error {
 			continue
 		}
 
+		newestSeen := lastActivityID
 		for _, a := range activities {
 			if a.ID <= lastActivityID {
 				continue
 			}
-			lastActivityID = a.ID
+			if a.ID > newestSeen {
+				newestSeen = a.ID
+			}
+		}
+
+		for i := len(activities) - 1; i >= 0; i-- {
+			a := activities[i]
+			if a.ID <= lastActivityID {
+				continue
+			}
 			switch a.Action {
 			case "COMMENTED":
 				if a.Comment != nil {
@@ -87,6 +97,7 @@ func runPRWatch(cmd *cobra.Command, args []string) error {
 					format.FormatDate(a.CreatedDate), a.User.DisplayName, a.Action)
 			}
 		}
+		lastActivityID = newestSeen
 
 		time.Sleep(interval)
 	}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/nwp/bb/internal/config"
 	"github.com/spf13/cobra"
@@ -32,9 +33,13 @@ func runAuthStatus(cmd *cobra.Command, _ []string) error {
 		if protocol == "" {
 			protocol = "https"
 		}
+		user := rh.User
+		if user == "" {
+			user = "(unknown user)"
+		}
 
 		fmt.Fprintf(cmd.OutOrStdout(), "%s\n", rh.Hostname)
-		fmt.Fprintf(cmd.OutOrStdout(), "  ✓ Logged in as %s\n", rh.Hostname)
+		fmt.Fprintf(cmd.OutOrStdout(), "  ✓ Logged in as %s\n", user)
 		fmt.Fprintf(cmd.OutOrStdout(), "  Protocol: %s\n", protocol)
 		fmt.Fprintf(cmd.OutOrStdout(), "  Token: %s (%s)\n", maskToken(rh.Token), storeLabel)
 
@@ -57,7 +62,8 @@ func checkConnectivity(hostname, token, protocol string) (int, error) {
 		return 0, err
 	}
 	req.Header.Set("Authorization", "Bearer "+token)
-	resp, err := http.DefaultClient.Do(req)
+	client := &http.Client{Timeout: 15 * time.Second}
+	resp, err := client.Do(req)
 	if err != nil {
 		return 0, err
 	}

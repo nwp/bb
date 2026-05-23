@@ -67,12 +67,12 @@ func runPRCreate(cmd *cobra.Command, _ []string) error {
 	// Determine base branch.
 	base := prCreateFlags.base
 	if base == "" {
-		repo, err := ctx.API.GetRepo(context.Background(), ctx.Project, ctx.Repo)
-		if err != nil {
-			return fmt.Errorf("getting default branch: %w", err)
+		resolvedBase, err := ctx.API.GetDefaultBranch(context.Background(), ctx.Project, ctx.Repo)
+		if err != nil || strings.TrimSpace(resolvedBase) == "" {
+			base = "main"
+		} else {
+			base = resolvedBase
 		}
-		// Use default branch from links or fall back to "main".
-		base = defaultBranchFromRepo(repo)
 	}
 
 	// Resolve title.
@@ -235,10 +235,4 @@ func parseCommitTitleAndBody(msg string) (title, body string, err error) {
 		body = strings.TrimSpace(parts[1])
 	}
 	return title, body, nil
-}
-
-// defaultBranchFromRepo returns a sensible default branch name.
-// Bitbucket Server doesn't surface this easily; fall back to "main".
-func defaultBranchFromRepo(_ *api.BBRepo) string {
-	return "main"
 }

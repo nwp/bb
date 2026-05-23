@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
+	"time"
 )
 
 // APIError is returned when the Bitbucket Server API responds with a non-2xx status.
@@ -41,7 +43,7 @@ func NewClient(hostname, token, protocol string) *Client {
 	return &Client{
 		baseURL:    fmt.Sprintf("%s://%s", protocol, hostname),
 		token:      token,
-		httpClient: &http.Client{},
+		httpClient: &http.Client{Timeout: defaultHTTPTimeout},
 	}
 }
 
@@ -146,6 +148,7 @@ func extractErrorDetail(body []byte) string {
 }
 
 const paginationLimit = 25
+const defaultHTTPTimeout = 20 * time.Second
 
 // Paginate fetches all pages of a paginated Bitbucket Server endpoint and
 // returns the combined slice of values.
@@ -198,6 +201,24 @@ func (c *Client) GetRepo(ctx context.Context, projectKey, repoSlug string) (*BBR
 		fmt.Sprintf("/rest/api/1.0/projects/%s/repos/%s", projectKey, repoSlug),
 		nil, nil, &repo)
 	return &repo, err
+}
+
+// GetDefaultBranch returns the default branch display ID for a repository.
+func (c *Client) GetDefaultBranch(ctx context.Context, projectKey, repoSlug string) (string, error) {
+	var ref BBRef
+	err := c.Request(ctx, http.MethodGet,
+		fmt.Sprintf("/rest/api/1.0/projects/%s/repos/%s/default-branch", projectKey, repoSlug),
+		nil, nil, &ref)
+	if err != nil {
+		return "", err
+	}
+	if ref.DisplayID != "" {
+		return ref.DisplayID, nil
+	}
+	if strings.HasPrefix(ref.ID, "refs/heads/") {
+		return strings.TrimPrefix(ref.ID, "refs/heads/"), nil
+	}
+	return ref.ID, nil
 }
 
 // — Pull Requests —

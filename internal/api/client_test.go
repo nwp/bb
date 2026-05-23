@@ -150,3 +150,16 @@ func TestGetPRDiff(t *testing.T) {
 	require.NoError(t, err)
 	assert.Contains(t, diff, "--- a/file")
 }
+
+func TestGetDefaultBranch(t *testing.T) {
+	_, client := newTestServer(t, func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/rest/api/1.0/projects/PROJ/repos/repo/default-branch", r.URL.Path)
+		json.NewEncoder(w).Encode(map[string]any{
+			"id":        "refs/heads/master",
+			"displayId": "master",
+		})
+	})
+	branch, err := client.GetDefaultBranch(context.Background(), "PROJ", "repo")
+	require.NoError(t, err)
+	assert.Equal(t, "master", branch)
+}

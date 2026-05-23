@@ -78,7 +78,7 @@ func (m *Manager) Load() Config {
 	return cfg
 }
 
-// Save writes cfg to disk with 0644 permissions.
+// Save writes cfg to disk with 0600 permissions.
 func (m *Manager) Save(cfg Config) error {
 	if err := os.MkdirAll(m.dir, 0755); err != nil {
 		return err
@@ -88,7 +88,7 @@ func (m *Manager) Save(cfg Config) error {
 		return err
 	}
 	data = append(data, '\n')
-	return os.WriteFile(m.configFile(), data, 0644)
+	return os.WriteFile(m.configFile(), data, 0600)
 }
 
 // SetHost stores authentication for hostname. Tries the keychain first; falls

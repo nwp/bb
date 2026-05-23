@@ -1,0 +1,54 @@
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+    - go vet ./...
+
+builds:
+  - id: bb
+    main: .
+    binary: bb
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w -X github.com/nwp/bb/cmd.version={{.Version}}
+
+archives:
+  - id: bb
+    formats:
+      - tar.gz
+    # Use zip for Windows if added later
+    format_overrides:
+      - goos: windows
+        formats:
+          - zip
+    name_template: "bb_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - README.md
+      - LICENSE
+      - AGENTS.md
+
+checksum:
+  name_template: "checksums.txt"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+      - Merge pull request
+      - Merge branch
+
+release:
+  draft: false
+  prerelease: auto  # tags like v1.0.0-beta.1 are marked pre-release automatically
+  name_template: "{{.ProjectName}} {{.Version}}"

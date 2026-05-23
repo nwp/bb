@@ -34,6 +34,10 @@ bb api <endpoint>   # Raw API call
 
 bb cache list       # List cached project/repo entries
 bb cache delete     # Remove cache entry for CWD (or given path)
+
+bb skill install    # Install bb skill file for detected coding agents
+bb skill install --list            # List supported agents
+bb skill install --agent copilot   # Install for a specific agent
 ```
 
 ## Authentication

@@ -8,6 +8,7 @@ export interface BBConfig {
   hosts: Record<string, HostEntry>;
   defaults?: {
     project?: string;
+    hostname?: string;
   };
 }
 
@@ -30,6 +31,59 @@ export interface HostConfig {
 
 const CONFIG_DIR = join(homedir(), ".config", "bb");
 const CONFIG_FILE = join(CONFIG_DIR, "config.json");
+
+export function normalizeHostname(input: string): string {
+  let host = input.trim();
+
+  host = host.replace(/^[a-z]+:\/\//i, "");
+  host = host.split(/[/?#]/, 1)[0] ?? host;
+  host = host.replace(/\/$/, "");
+
+  return host.toLowerCase();
+}
+
+function stripNumericPort(hostname: string): string {
+  const ipv6Match = hostname.match(/^(\[[^\]]+\])(?::\d+)?$/);
+  if (ipv6Match) return ipv6Match[1];
+  return hostname.replace(/:\d+$/, "");
+}
+
+function hostMatches(left: string, right: string): boolean {
+  if (left === right) return true;
+  return stripNumericPort(left) === stripNumericPort(right);
+}
+
+export function resolveHostAlias(requestedHostname: string, configuredHosts: string[]): string | null {
+  const requested = normalizeHostname(requestedHostname);
+  if (!requested) return null;
+
+  // 1) Exact key match first
+  if (configuredHosts.includes(requested)) {
+    return requested;
+  }
+
+  // 2) Exact normalized match
+  for (const host of configuredHosts) {
+    if (normalizeHostname(host) === requested) {
+      return host;
+    }
+  }
+
+  // 3) Fallback: ignore numeric port differences (common SSH/API split)
+  for (const host of configuredHosts) {
+    if (hostMatches(normalizeHostname(host), requested)) {
+      return host;
+    }
+  }
+
+  return null;
+}
+
+function findHostEntry(config: BBConfig, hostname: string): { key: string; entry: HostEntry } | null {
+  const alias = resolveHostAlias(hostname, Object.keys(config.hosts));
+  if (!alias) return null;
+  return { key: alias, entry: config.hosts[alias] };
+}
 
 export function configDir(): string {
   return CONFIG_DIR;
@@ -85,10 +139,21 @@ async function resolveHostConfig(hostname: string, entry: HostEntry): Promise<Ho
 }
 
 export async function getHostConfig(hostname: string): Promise<HostConfig | null> {
+  const resolved = await getResolvedHostConfig(hostname);
+  return resolved?.config ?? null;
+}
+
+export async function getResolvedHostConfig(
+  hostname: string
+): Promise<{ hostname: string; config: HostConfig } | null> {
   const config = await loadConfig();
-  const entry = config.hosts[hostname];
-  if (!entry) return null;
-  return resolveHostConfig(hostname, entry);
+  const match = findHostEntry(config, hostname);
+  if (!match) return null;
+
+  const resolvedConfig = await resolveHostConfig(match.key, match.entry);
+  if (!resolvedConfig) return null;
+
+  return { hostname: match.key, config: resolvedConfig };
 }
 
 /**
@@ -100,8 +165,9 @@ export async function setHostConfig(
   host: HostConfig
 ): Promise<"keychain" | "file"> {
   const config = await loadConfig();
+  const normalizedHostname = normalizeHostname(hostname);
 
-  const keychainStored = await setToken(hostname, host.token);
+  const keychainStored = await setToken(normalizedHostname, host.token);
 
   const entry: HostEntry = {
     user: host.user,
@@ -115,7 +181,11 @@ export async function setHostConfig(
     entry.token = host.token;
   }
 
-  config.hosts[hostname] = entry;
+  config.hosts[normalizedHostname] = entry;
+  config.defaults = {
+    ...(config.defaults ?? {}),
+    hostname: normalizedHostname,
+  };
   await saveConfig(config);
 
   return keychainStored ? "keychain" : "file";
@@ -123,18 +193,41 @@ export async function setHostConfig(
 
 export async function removeHostConfig(hostname: string): Promise<void> {
   const config = await loadConfig();
-  const entry = config.hosts[hostname];
+  const match = findHostEntry(config, hostname);
+  if (!match) return;
+
+  const { key, entry } = match;
   if (entry?.token_store === "keychain") {
-    await deleteToken(hostname);
+    await deleteToken(key);
   }
 
-  delete config.hosts[hostname];
+  delete config.hosts[key];
+
+  if (config.defaults?.hostname && hostMatches(normalizeHostname(config.defaults.hostname), normalizeHostname(key))) {
+    const nextHost = Object.keys(config.hosts)[0];
+    if (nextHost) {
+      config.defaults.hostname = nextHost;
+    } else {
+      delete config.defaults.hostname;
+    }
+  }
+
   await saveConfig(config);
 }
 
 /** Get the first configured host, or null */
 export async function getDefaultHost(): Promise<{ hostname: string; config: HostConfig } | null> {
   const config = await loadConfig();
+  if (config.defaults?.hostname) {
+    const preferred = findHostEntry(config, config.defaults.hostname);
+    if (preferred) {
+      const resolved = await resolveHostConfig(preferred.key, preferred.entry);
+      if (resolved) {
+        return { hostname: preferred.key, config: resolved };
+      }
+    }
+  }
+
   const entries = Object.entries(config.hosts);
   if (entries.length === 0) return null;
 

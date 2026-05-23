@@ -24,6 +24,16 @@ require interactive input or expose tokens, and calling them wastes time.
 If a \`bb\` command fails with an auth error, tell the user to run
 \`bb auth login\` — do not run it for them.
 
+When suggesting fixes to the user, prefer concise checks:
+
+\`\`\`sh
+# Show auth + connectivity per host
+bb auth status
+
+# Raw authenticated API smoke test
+bb api /rest/api/1.0/application-properties
+\`\`\`
+
 ## Repository context
 
 Bitbucket Server uses **project keys** (always UPPERCASE, e.g. \`PROJ\`, \`DEV\`,
@@ -55,6 +65,16 @@ bb pr view 42
 bb pr create --title "Description" --body "Details"
 bb pr create --title "Fix bug" --reviewer jsmith --reviewer adoe
 bb pr create --title "Backport" --base release/2.0
+
+# gh-style autofill from latest commit
+bb pr create --fill
+
+# Use body content from a file (or stdin)
+bb pr create --title "Release notes" --body-file ./PR_BODY.md
+cat ./PR_BODY.md | bb pr create --title "Release notes" --body-file -
+
+# Use a template file
+bb pr create --title "Release notes" --template .github/PULL_REQUEST_TEMPLATE.md
 
 # Edit a PR (title, description, base branch, reviewers)
 bb pr edit 42 --title "New title" --body "New description"

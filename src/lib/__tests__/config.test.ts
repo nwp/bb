@@ -2,6 +2,7 @@ import { describe, expect, test, beforeEach, afterEach } from "bun:test";
 import { mkdtemp, rm, readFile } from "fs/promises";
 import { tmpdir } from "os";
 import { join } from "path";
+import { normalizeHostname, resolveHostAlias } from "../config.js";
 
 // We need to override the config paths for testing.
 // The simplest approach: test the load/save logic with real files in a temp dir.
@@ -99,6 +100,42 @@ describe("config", () => {
     expect(Object.keys(updated.hosts)).toHaveLength(1);
     expect(updated.hosts["bb1.corp.com"]).toBeUndefined();
     expect(updated.hosts["bb2.corp.com"].token).toBe("token2");
+  });
+});
+
+describe("normalizeHostname", () => {
+  test("normalizes protocol, path, and casing", () => {
+    expect(normalizeHostname("HTTPS://BitBucket.Example.com/scm/PROJ/repo.git")).toBe(
+      "bitbucket.example.com"
+    );
+  });
+
+  test("preserves explicit host port", () => {
+    expect(normalizeHostname("bitbucket.example.com:7990")).toBe("bitbucket.example.com:7990");
+  });
+
+  test("preserves bracketed ipv6 host", () => {
+    expect(normalizeHostname("https://[2001:db8::1]:7990/scm/PROJ/repo.git")).toBe("[2001:db8::1]:7990");
+  });
+});
+
+describe("resolveHostAlias", () => {
+  test("prefers exact matching host key", () => {
+    const match = resolveHostAlias("bitbucket.example.com:7999", [
+      "bitbucket.example.com",
+      "bitbucket.example.com:7999",
+    ]);
+    expect(match).toBe("bitbucket.example.com:7999");
+  });
+
+  test("falls back to host without port when only base host is configured", () => {
+    const match = resolveHostAlias("bitbucket.example.com:7999", ["bitbucket.example.com"]);
+    expect(match).toBe("bitbucket.example.com");
+  });
+
+  test("returns null when host is not configured", () => {
+    const match = resolveHostAlias("bb.other.internal", ["bb.example.internal"]);
+    expect(match).toBeNull();
   });
 });
 

@@ -1,5 +1,5 @@
 import { $ } from "bun";
-import { getHostConfig, getDefaultHost, type HostConfig } from "./config.js";
+import { getDefaultHost, getResolvedHostConfig, type HostConfig } from "./config.js";
 import { BitbucketAPI } from "./api.js";
 import { getCacheEntry, setCacheEntry } from "./repo-cache.js";
 
@@ -75,8 +75,8 @@ async function detectRepoIdentity(): Promise<{ hostname: string; project: string
 
 /**
  * Resolve context: parse git remote or use explicit flags, then look up auth.
- * The cache is written as soon as hostname/project/repo are known — before
- * auth is checked — so subsequent commands can skip git remote parsing.
+ * The hostname may be remapped to a configured alias (for example, an SSH
+ * remote host with a port mapped to an HTTPS API host without the port).
  */
 export async function resolveContext(opts?: {
   repo?: string; // format: PROJECT/repo or host/PROJECT/repo
@@ -115,12 +115,15 @@ export async function resolveContext(opts?: {
     }
   }
 
-  setCacheEntry(process.cwd(), { hostname, project, repo }).catch(() => {});
-
-  const hostConfig = await getHostConfig(hostname);
-  if (!hostConfig) {
+  const resolvedHost = await getResolvedHostConfig(hostname);
+  if (!resolvedHost) {
     throw new Error(`Not authenticated to ${hostname}. Run: bb auth login`);
   }
+
+  hostname = resolvedHost.hostname;
+  const hostConfig = resolvedHost.config;
+
+  setCacheEntry(process.cwd(), { hostname, project, repo }).catch(() => {});
 
   return {
     hostname,

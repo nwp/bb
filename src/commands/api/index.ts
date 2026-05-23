@@ -1,6 +1,6 @@
 import { Command } from "commander";
 import chalk from "chalk";
-import { getDefaultHost, getHostConfig } from "../../lib/config.js";
+import { getDefaultHost, getResolvedHostConfig } from "../../lib/config.js";
 import { BitbucketAPI } from "../../lib/api.js";
 
 export const apiCmd = new Command("api")
@@ -15,12 +15,13 @@ export const apiCmd = new Command("api")
     let hostConfig;
 
     if (opts.hostname) {
-      hostConfig = await getHostConfig(opts.hostname);
-      if (!hostConfig) {
+      const resolved = await getResolvedHostConfig(opts.hostname);
+      if (!resolved) {
         console.error(chalk.red(`Not authenticated to ${opts.hostname}. Run: bb auth login`));
         process.exit(1);
       }
-      hostname = opts.hostname;
+      hostname = resolved.hostname;
+      hostConfig = resolved.config;
     } else {
       const host = await getDefaultHost();
       if (!host) {

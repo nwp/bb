@@ -44,6 +44,16 @@ require interactive input or expose tokens, and calling them wastes time.
 If a `bb` command fails with an auth error, tell the user to run
 `bb auth login` — do not run it for them.
 
+When suggesting next steps to the user, prefer concise checks:
+
+```sh
+# Show auth + connectivity per host
+bb auth status
+
+# Raw authenticated API smoke test
+bb api /rest/api/1.0/application-properties
+```
+
 ## Repository context
 
 `bb` resolves project and repository using this priority order:
@@ -84,6 +94,16 @@ bb pr create --title "Fix auth bug" --reviewer jsmith --reviewer adoe
 
 # Create PR targeting a specific base branch
 bb pr create --title "Backport fix" --base release/2.0
+
+# gh-style autofill from latest commit
+bb pr create --fill
+
+# Use body content from a file (or stdin)
+bb pr create --title "Release notes" --body-file ./PR_BODY.md
+cat ./PR_BODY.md | bb pr create --title "Release notes" --body-file -
+
+# Use a template file
+bb pr create --title "Release notes" --template .github/PULL_REQUEST_TEMPLATE.md
 ```
 
 ### Check PR status and wait for approval

@@ -186,6 +186,19 @@ Non-interactive (CI, scripts, agents):
 bb auth login --hostname bitbucket.example.com --token <your-token>
 ```
 
+`gh`-style token input from stdin:
+
+```sh
+echo "$BB_TOKEN" | bb auth login --hostname bitbucket.example.com --with-token
+```
+
+If your network path to Bitbucket is temporarily unavailable but you still want
+to store credentials now and verify later:
+
+```sh
+bb auth login --hostname bitbucket.example.com --token <your-token> --skip-verify
+```
+
 For HTTP (non-TLS) instances:
 
 ```sh
@@ -221,6 +234,11 @@ bb auth migrate
 
 Multiple hosts are supported.
 
+`bb` also tracks a default host (typically the most recently authenticated
+host), which is used by commands like `bb api` when `--hostname` is omitted.
+When running inside a git repo, `bb` still prefers the host inferred from the
+repo remote.
+
 ## Usage
 
 ### Working with pull requests
@@ -236,6 +254,18 @@ bb pr view
 
 # Create a PR from the current branch
 bb pr create --title "My change" --reviewer jsmith
+
+# Create a PR using latest commit title/body (gh-style)
+bb pr create --fill
+
+# Create a PR with body content from a file
+bb pr create --title "Release notes" --body-file ./PR_BODY.md
+
+# Read PR body from stdin
+cat ./PR_BODY.md | bb pr create --title "Release notes" --body-file -
+
+# Use a PR template file
+bb pr create --title "Release notes" --template .github/PULL_REQUEST_TEMPLATE.md
 
 # Approve a PR
 bb pr review --approve
@@ -315,6 +345,9 @@ Auth config is stored at `~/.config/bb/config.json`:
       "token": "...",
       "protocol": "https"
     }
+  },
+  "defaults": {
+    "hostname": "bitbucket.example.com"
   }
 }
 ```

@@ -1,6 +1,6 @@
 {
   "name": "bb-cli",
-  "version": "0.2.0",
+  "version": "0.2.2",
   "description": "A CLI for Bitbucket Server, modeled after the GitHub gh CLI",
   "type": "module",
   "bin": {

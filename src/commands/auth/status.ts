@@ -23,9 +23,16 @@ export const statusCmd = new Command("status")
       console.log(`Keychain: ${chalk.yellow("none (tokens stored in plaintext)")}\n`);
     }
 
+    const defaultHost = config.defaults?.hostname;
+    if (defaultHost) {
+      console.log(`Default host: ${chalk.cyan(defaultHost)}\n`);
+    }
+
     for (const [hostname, entry] of hosts) {
       const proto = entry.protocol ?? "https";
-      console.log(chalk.bold(hostname));
+      const isDefault = defaultHost === hostname;
+      const header = isDefault ? `${hostname} ${chalk.dim("(default)")}` : hostname;
+      console.log(chalk.bold(header));
       console.log(`  Protocol: ${proto}`);
 
       let token: string | null = null;

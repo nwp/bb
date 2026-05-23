@@ -11,7 +11,7 @@ import { cacheCmd } from "../src/commands/cache/index.js";
 const program = new Command()
   .name("bb")
   .description("A CLI for Bitbucket Server — like gh, but for Bitbucket")
-  .version("0.2.0")
+  .version("0.2.2")
   .addCommand(authCmd)
   .addCommand(repoCmd)
   .addCommand(prCmd)
